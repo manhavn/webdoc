@@ -1,0 +1,14 @@
+{
+  "siteName": "WebDoc",
+  "tagline": "Scientific publishing demo",
+  "hotline": "0912 345 678",
+  "email": "hello@example.com",
+  "address": "1 Demo Street, Hanoi, Vietnam",
+  "facebook": "https://facebook.com/example",
+  "youtube": "https://youtube.com/@example",
+  "footerText": "WebDoc — for evaluation only. © 2026 WebDoc.",
+  "headerLogo": "",
+  "footerLogo": "",
+  "favicon": "",
+  "ogImage": ""
+}

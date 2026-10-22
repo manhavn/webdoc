@@ -1,0 +1,9 @@
+/target
+.env
+.env.local
+uploads/*
+!uploads/.gitkeep
+embed/ui/*
+!embed/ui/.gitkeep
+embed/admin/*
+!embed/admin/.gitkeep

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>WebDoc — Scientific publishing demo</title>
+    <meta
+      name="description"
+      content="WebDoc is a demo platform for scientific journal publishing, editorial workflows and documentation."
+    />
+    <meta name="author" content="WebDoc" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/assets/images/og-image.png" />
+    <style>
+      /* Keep the viewport scrollbar lane reserved while booting. Content height
+         changes (skeleton → article) must not toggle the scrollbar and shift
+         the page sideways. */
+      html {
+        overflow-y: scroll;
+      }
+
+      /* Slim, theme-aware scrollbar (6px in Chromium/WebKit). The inline width
+         matters: a later resize would shift the layout. */
+      :root {
+        --wd-scrollbar-thumb: #cbd5e1;
+      }
+
+      html[data-theme='dark'] {
+        --wd-scrollbar-thumb: #475569;
+      }
+
+      html::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      html::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      html::-webkit-scrollbar-thumb {
+        background-color: var(--wd-scrollbar-thumb);
+        border-radius: 999px;
+      }
+
+      html::-webkit-scrollbar-thumb:hover {
+        background-color: #94a3b8;
+      }
+
+      html[data-theme='dark']::-webkit-scrollbar-thumb:hover {
+        background-color: #64748b;
+      }
+
+      @supports (-moz-appearance: none) {
+        html {
+          scrollbar-width: thin;
+          scrollbar-color: var(--wd-scrollbar-thumb) transparent;
+        }
+      }
+    </style>
+    <script>
+      /* Apply the saved theme before the first paint. ThemeContext writes
+         webdoc_theme_config once the appearance API responds, so reloads
+         resolve the correct mode without a wrong-theme flash. With no cached
+         config the app waits for the API instead of guessing "system". */
+      (function () {
+        try {
+          var MODES = ['system', 'light', 'dark'];
+          var saved = localStorage.getItem('webdoc_theme');
+          var config = null;
+          try {
+            config = JSON.parse(localStorage.getItem('webdoc_theme_config') || 'null');
+          } catch (error) {
+            config = null;
+          }
+          var options =
+            config && Array.isArray(config.options)
+              ? MODES.filter(function (mode) {
+                  return config.options.indexOf(mode) !== -1;
+                })
+              : [];
+          if (!options.length) options = MODES.slice();
+          var mode = options.indexOf(saved) !== -1 ? saved : '';
+          if (!mode && config && options.indexOf(config.default) !== -1) {
+            mode = config.default;
+          }
+          if (!mode && !config && MODES.indexOf(saved) !== -1) mode = saved;
+          if (!mode) return;
+          var resolved =
+            mode === 'system'
+              ? window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : mode;
+          var root = document.documentElement;
+          root.dataset.theme = resolved;
+          root.dataset.themeMode = mode;
+          root.style.colorScheme = resolved;
+        } catch (error) {
+          /* private mode or blocked storage: let the app apply its default */
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/assets/theme.css" />
+    <link rel="stylesheet" href="/assets/fa/css/all.min.css" />
+    <link rel="stylesheet" href="/assets/yt/lite-yt-embed.css" />
+    <script src="/assets/yt/lite-yt-embed.js" defer></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

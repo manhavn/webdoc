@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Journal of Demo Science",
+    "org": "Demo University",
+    "logo": "/assets/images/journals/demo-science.svg",
+    "url": "https://example.com/journals/demo-science",
+    "order": 1
+  },
+  {
+    "name": "Open Research Letters",
+    "org": "Open Science Institute",
+    "logo": "/assets/images/journals/open-research.svg",
+    "url": "https://example.com/journals/open-research",
+    "order": 2
+  },
+  {
+    "name": "Applied Data Review",
+    "org": "Demo Institute of Technology",
+    "logo": "/assets/images/journals/applied-data-review.svg",
+    "url": "https://example.com/journals/applied-data-review",
+    "order": 3
+  },
+  {
+    "name": "Demo Medical Journal",
+    "org": "Demo Medical University",
+    "logo": "/assets/images/journals/demo-medical-journal.svg",
+    "url": "https://example.com/journals/demo-medical-journal",
+    "order": 4
+  },
+  {
+    "name": "Journal of Digital Scholarship",
+    "org": "Demo Library",
+    "logo": "/assets/images/journals/digital-scholarship.svg",
+    "url": "https://example.com/journals/digital-scholarship",
+    "order": 5
+  },
+  {
+    "name": "Vietnam Science Review",
+    "org": "Demo Academy",
+    "logo": "/assets/images/journals/vietnam-science-review.svg",
+    "url": "https://example.com/journals/vietnam-science-review",
+    "order": 6
+  },
+  {
+    "name": "Global Health Perspectives",
+    "org": "Demo Health Foundation",
+    "logo": "/assets/images/journals/global-health-perspectives.svg",
+    "url": "https://example.com/journals/global-health-perspectives",
+    "order": 7
+  },
+  {
+    "name": "Journal of Engineering Studies",
+    "org": "Demo Engineering School",
+    "logo": "/assets/images/journals/engineering-studies.svg",
+    "url": "https://example.com/journals/engineering-studies",
+    "order": 8
+  },
+  {
+    "name": "Social Science Quarterly",
+    "org": "Demo Social Institute",
+    "logo": "/assets/images/journals/social-science-quarterly.svg",
+    "url": "https://example.com/journals/social-science-quarterly",
+    "order": 9
+  },
+  {
+    "name": "Environmental Research Notes",
+    "org": "Demo Environment Centre",
+    "logo": "/assets/images/journals/environmental-research-notes.svg",
+    "url": "https://example.com/journals/environmental-research-notes",
+    "order": 10
+  },
+  {
+    "name": "Journal of Academic Publishing",
+    "org": "Demo Publishing Association",
+    "logo": "/assets/images/journals/academic-publishing.svg",
+    "url": "https://example.com/journals/academic-publishing",
+    "order": 11
+  },
+  {
+    "name": "Emerging Technology Review",
+    "org": "Demo Tech Institute",
+    "logo": "/assets/images/journals/emerging-technology-review.svg",
+    "url": "https://example.com/journals/emerging-technology-review",
+    "order": 12
+  }
+]

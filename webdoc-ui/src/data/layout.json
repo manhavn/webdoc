@@ -1,0 +1,347 @@
+{
+  "slug": "home",
+  "sections": [
+    {
+      "key": "hero",
+      "enabled": true,
+      "order": 1,
+      "data": {
+        "title": "A modern demo for scientific journal publishing",
+        "subtitle": "Explore a complete demonstration of submission, peer review, editorial workflows and online publishing — built for academic teams and journal editors.",
+        "primaryLabel": "Contact the demo team",
+        "primaryHref": "/contact",
+        "secondaryLabel": "Request a walkthrough",
+        "secondaryHref": "/contact",
+        "videoId": "aqz-KE-bpKQ",
+        "videoTitle": "WebDoc demo overview",
+        "videoCaption": "WebDoc demo overview",
+        "videoNote": "12 fictional journals included"
+      }
+    },
+    {
+      "key": "benefits",
+      "enabled": true,
+      "order": 2,
+      "data": {
+        "title": "What does WebDoc demonstrate?",
+        "items": [
+          {
+            "icon": "fa-award",
+            "tone": "fuchsia",
+            "title": "Journal standards and compliance",
+            "bullets": [
+              "Indexing-ready metadata (ISI/Scopus concepts)",
+              "VJOL-style national database workflows",
+              "Research scoring and editorial criteria",
+              "Digital publication requirements"
+            ]
+          },
+          {
+            "icon": "fa-project-diagram",
+            "tone": "violet",
+            "title": "End-to-end submission and review",
+            "bullets": [
+              "Online submission from draft to decision",
+              "Flexible roles and permissions",
+              "Reviewer and editor workspaces",
+              "Notifications, reports and audit trails"
+            ]
+          },
+          {
+            "icon": "fa-plug",
+            "tone": "indigo",
+            "title": "Integrations and interoperability",
+            "bullets": [
+              "Plagiarism and AI-check integration points",
+              "DOI assignment (Crossref)",
+              "Citation indexing concepts",
+              "Reference verification workflows"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "evolution",
+      "enabled": true,
+      "order": 3,
+      "data": {
+        "title": "How journal publishing has evolved",
+        "subtitle": "From manual email workflows to a connected, standards-aware publishing platform.",
+        "items": [
+          {
+            "phase": "Stage 1",
+            "badge": "gray",
+            "variant": "basic",
+            "title": "Manual",
+            "titleColor": "text-gray-700",
+            "icon": "manual",
+            "strong": "Traditional — hard to standardise",
+            "desc": "Submissions arrive by email or forms, with no shared tracking or consistent metadata.",
+            "points": [
+              {
+                "ok": false,
+                "text": "Documents get lost and progress is hard to track"
+              },
+              {
+                "ok": false,
+                "text": "Manual work consumes editorial time"
+              },
+              {
+                "ok": false,
+                "text": "No central archive or audit trail"
+              },
+              {
+                "ok": false,
+                "text": "Difficult to meet national and international standards"
+              },
+              {
+                "ok": false,
+                "text": "Limited reach to authors and readers"
+              }
+            ]
+          },
+          {
+            "phase": "Stage 2",
+            "badge": "amber",
+            "variant": "standard",
+            "title": "Legacy OJS",
+            "titleColor": "text-amber-700",
+            "icon": "ojs",
+            "strong": "A low-cost starting point",
+            "desc": "Basic submission and publishing, but many workflows remain fragmented or hard to configure.",
+            "points": [
+              {
+                "ok": true,
+                "text": "Covers basic editorial standards"
+              },
+              {
+                "ok": true,
+                "text": "Digitises submission and review"
+              },
+              {
+                "ok": false,
+                "text": "Limited compliance tooling and integrations"
+              },
+              {
+                "ok": false,
+                "text": "Advanced workflows require custom work"
+              },
+              {
+                "ok": false,
+                "text": "Interface can be complex for non-technical users"
+              }
+            ]
+          },
+          {
+            "phase": "Best fit",
+            "badge": "fuchsia",
+            "variant": "premium",
+            "title": "WebDoc",
+            "titleColor": "text-fuchsia-800 text-2xl",
+            "icon": "webdoc",
+            "strong": "A complete, modern demo",
+            "desc": "A polished publishing experience with a content tree, editorial workflow and standards-aware metadata.",
+            "points": [
+              {
+                "ok": true,
+                "text": "Modern, responsive and accessible interface"
+              },
+              {
+                "ok": true,
+                "text": "Content-first structure managed from the CMS"
+              },
+              {
+                "ok": true,
+                "text": "DOI, plagiarism and citation concepts built in"
+              },
+              {
+                "ok": true,
+                "text": "Clear workflows for authors, reviewers and editors"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "upgrade",
+      "enabled": true,
+      "order": 4,
+      "data": {
+        "title": "What teams gain with WebDoc",
+        "cards": [
+          {
+            "headerTone": "gray",
+            "icon": "manual",
+            "heading": "Starting from manual processes? WebDoc gives your team a structured, consistent publishing flow from day one.",
+            "bullets": [
+              "Professionalise submission, review and publishing",
+              "Start with a consistent structure and avoid later migrations",
+              "Cover national and institutional technical requirements",
+              "Connect DOI, citation and plagiarism concepts",
+              "Manage content in one central place",
+              "Onboarding support and documentation included"
+            ],
+            "statNumber": "12",
+            "statLabel": "fictional journals in the demo dataset"
+          },
+          {
+            "headerTone": "amber",
+            "icon": "ojs",
+            "heading": "Already using a legacy journal system? WebDoc demonstrates a cleaner content and editorial experience.",
+            "bullets": [
+              "Modern content tree instead of scattered static pages",
+              "Flexible groups, pages and article ordering",
+              "Editorial metadata and review states",
+              "Image upload and cleanup built into the CMS",
+              "Portable ZIP backups with no domain lock-in",
+              "Documentation and demo content included"
+            ],
+            "statNumber": "42",
+            "statLabel": "demo content items ready to explore"
+          }
+        ]
+      }
+    },
+    {
+      "key": "journals",
+      "enabled": true,
+      "order": 5,
+      "data": {
+        "title": "Partners in the WebDoc demo"
+      }
+    },
+    {
+      "key": "features",
+      "enabled": true,
+      "order": 6,
+      "data": {
+        "title": "Why explore WebDoc?",
+        "items": [
+          {
+            "title": "Complete editorial workflow",
+            "body": "Demonstrates submission, peer review, editorial decisions and publication in one connected experience."
+          },
+          {
+            "title": "Standards-aware metadata",
+            "body": "Shows how DOI, citation, indexing and national database requirements can be represented and managed."
+          },
+          {
+            "title": "Flexible and responsive interface",
+            "body": "Works across desktop, tablet and mobile with a clean reading experience and accessible navigation."
+          },
+          {
+            "title": "Content managed from the CMS",
+            "body": "Groups, pages, ordering, images and site branding are editable without rebuilding the frontend."
+          },
+          {
+            "title": "Integrations by design",
+            "body": "Prepared integration points for DOI, plagiarism checks, citation metrics and reference verification."
+          },
+          {
+            "title": "Documentation and support",
+            "body": "Demo guides, tooltips and admin documentation make the platform easy to evaluate and extend."
+          }
+        ]
+      }
+    },
+    {
+      "key": "demo",
+      "enabled": true,
+      "order": 7,
+      "data": {
+        "title": "Interface demo",
+        "subtitle": "A selection of demo screens generated for this project.",
+        "slides": [
+          {
+            "src": "/assets/images/home-page/demo1.png",
+            "alt": "WebDoc dashboard demo"
+          },
+          {
+            "src": "/assets/images/home-page/demo2.png",
+            "alt": "WebDoc content tree demo"
+          },
+          {
+            "src": "/assets/images/home-page/demo3.png",
+            "alt": "WebDoc review workflow demo"
+          },
+          {
+            "src": "/assets/images/home-page/demo4.png",
+            "alt": "WebDoc publishing demo"
+          }
+        ]
+      }
+    },
+    {
+      "key": "process",
+      "enabled": true,
+      "order": 8,
+      "data": {
+        "title": "How a demo rollout works",
+        "steps": [
+          {
+            "title": "Step 1",
+            "desc": "Discovery & planning",
+            "icon": 1
+          },
+          {
+            "title": "Step 2",
+            "desc": "Content & design setup",
+            "icon": 2
+          },
+          {
+            "title": "Step 3",
+            "desc": "Training & handover",
+            "icon": 3
+          },
+          {
+            "title": "Step 4",
+            "desc": "Maintenance & iteration",
+            "icon": 4
+          }
+        ]
+      }
+    },
+    {
+      "key": "deploy",
+      "enabled": true,
+      "order": 9,
+      "data": {
+        "title": "Deployment options",
+        "plans": [
+          {
+            "icon": "fa-sync-alt",
+            "title": "Managed demo",
+            "bullets": [
+              "Hosted demonstration environment",
+              "Regular updates and maintenance",
+              "Low setup cost for evaluation"
+            ]
+          },
+          {
+            "icon": "fa-box-open",
+            "title": "Self-hosted",
+            "bullets": [
+              "Deploy on your own infrastructure",
+              "Portable ZIP backup and restore",
+              "Optional support and customisation"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "contact",
+      "enabled": true,
+      "order": 10,
+      "data": {
+        "title": "Talk to the WebDoc demo team",
+        "hotlineLabel": "Demo hotline: 0912 345 678",
+        "hotline": "0912 345 678",
+        "formLabel": "Request a walkthrough",
+        "formHref": "/contact"
+      }
+    }
+  ]
+}

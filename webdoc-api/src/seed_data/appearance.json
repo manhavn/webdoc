@@ -1,0 +1,59 @@
+{
+  "colors": {
+    "primary": "#0f766e",
+    "primaryDark": "#115e59",
+    "accent": "#0891b2",
+    "background": "#ffffff",
+    "surface": "#f8fafc",
+    "text": "#0f172a",
+    "muted": "#64748b",
+    "border": "#e2e8f0",
+    "headerBackground": "#ffffff",
+    "headerText": "#0f172a",
+    "footerBackground": "#0b2b2a",
+    "footerText": "#d1fae5"
+  },
+  "fonts": {
+    "body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "heading": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "baseSize": "16px",
+    "googleFontsUrl": ""
+  },
+  "background": {
+    "image": "",
+    "color": "#ffffff",
+    "overlay": 1,
+    "fixed": false
+  },
+  "header": {
+    "show": true,
+    "sticky": true,
+    "showSearch": true,
+    "showLanguage": true,
+    "background": "",
+    "text": "",
+    "ctaLabel": "",
+    "ctaLabelVi": "",
+    "ctaUrl": "",
+    "ctaLabels": {}
+  },
+  "footer": {
+    "show": true,
+    "background": "",
+    "text": "",
+    "copyright": "",
+    "note": "",
+    "links": [],
+    "products": []
+  },
+  "navigation": [],
+  "pages": [],
+  "theme": {
+    "default": "system",
+    "options": [
+      "system",
+      "light",
+      "dark"
+    ]
+  }
+}

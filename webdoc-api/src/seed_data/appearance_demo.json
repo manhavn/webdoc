@@ -1,0 +1,154 @@
+{
+  "colors": {
+    "primary": "#0f766e",
+    "primaryDark": "#115e59",
+    "accent": "#0891b2",
+    "background": "#ffffff",
+    "surface": "#f8fafc",
+    "text": "#0f172a",
+    "muted": "#64748b",
+    "border": "#e2e8f0",
+    "headerBackground": "#ffffff",
+    "headerText": "#0f172a",
+    "footerBackground": "#0b2b2a",
+    "footerText": "#d1fae5"
+  },
+  "fonts": {
+    "body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "heading": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "baseSize": "16px",
+    "googleFontsUrl": ""
+  },
+  "background": {
+    "image": "",
+    "color": "#ffffff",
+    "overlay": 1,
+    "fixed": false
+  },
+  "header": {
+    "show": true,
+    "sticky": true,
+    "showSearch": true,
+    "showLanguage": true,
+    "background": "",
+    "text": "",
+    "ctaLabel": "",
+    "ctaLabelVi": "",
+    "ctaUrl": "",
+    "ctaLabels": {}
+  },
+  "footer": {
+    "show": true,
+    "background": "",
+    "text": "",
+    "copyright": "",
+    "note": "",
+    "links": [
+      {
+        "label": "About WebDoc",
+        "labelVi": "Về WebDoc",
+        "href": "/ve-chung-toi",
+        "labels": {}
+      },
+      {
+        "label": "Development history",
+        "labelVi": "Lịch sử phát triển",
+        "href": "/ve-chung-toi/lich-su-phat-trien",
+        "labels": {}
+      },
+      {
+        "label": "Key features",
+        "labelVi": "Tính năng chính",
+        "href": "/san-pham/tinh-nang-chinh",
+        "labels": {}
+      },
+      {
+        "label": "Changelog",
+        "labelVi": "Lịch sử cập nhật",
+        "href": "/san-pham/lich-su-cap-nhat",
+        "labels": {}
+      },
+      {
+        "label": "User guide",
+        "labelVi": "Hướng dẫn sử dụng",
+        "href": "/huong-dan-su-dung/tong-quan",
+        "labels": {}
+      },
+      {
+        "label": "Articles",
+        "labelVi": "Bài viết",
+        "href": "/bai-viet",
+        "labels": {}
+      },
+      {
+        "label": "Contact us",
+        "labelVi": "Liên hệ",
+        "href": "/contact",
+        "labels": {}
+      }
+    ],
+    "products": [
+      {
+        "label": "Demo Journal Suite",
+        "labelVi": "Bộ công cụ tạp chí demo",
+        "href": "https://example.com/demo-journal-suite",
+        "labels": {}
+      },
+      {
+        "label": "Open Review",
+        "labelVi": "Open Review",
+        "href": "https://example.com/open-review",
+        "labels": {}
+      },
+      {
+        "label": "Scholar Demo",
+        "labelVi": "Scholar Demo",
+        "href": "https://example.com/scholar-demo",
+        "labels": {}
+      },
+      {
+        "label": "Conference Demo",
+        "labelVi": "Conference Demo",
+        "href": "https://example.com/conference-demo",
+        "labels": {}
+      },
+      {
+        "label": "Metrics Demo",
+        "labelVi": "Metrics Demo",
+        "href": "https://example.com/metrics-demo",
+        "labels": {}
+      },
+      {
+        "label": "DataCite Demo",
+        "labelVi": "DataCite Demo",
+        "href": "https://example.com/datacite-demo",
+        "labels": {}
+      }
+    ]
+  },
+  "navigation": [
+    {
+      "label": "Home",
+      "labelVi": "Trang chủ",
+      "href": "/",
+      "links": [],
+      "labels": {}
+    },
+    {
+      "label": "Contact",
+      "labelVi": "Liên hệ",
+      "href": "/contact",
+      "links": [],
+      "labels": {}
+    }
+  ],
+  "pages": [],
+  "theme": {
+    "default": "system",
+    "options": [
+      "system",
+      "light",
+      "dark"
+    ]
+  }
+}
