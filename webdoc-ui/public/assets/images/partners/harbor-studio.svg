@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Harbor Studio">
+  <rect width="160" height="160" rx="32" fill="#4338ca"/>
+  <path d="M34 104h92" stroke="#e0e7ff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M52 104V64a28 28 0 0156 0v40" fill="none" stroke="#e0e7ff" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="80" cy="72" r="9" fill="#a5b4fc"/>
+</svg>

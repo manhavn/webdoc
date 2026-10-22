@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Northwind Studio",
+    "org": "Design collective",
+    "logo": "/assets/images/partners/northwind-studio.svg",
+    "url": "https://example.com/partners/northwind-studio",
+    "order": 1
+  },
+  {
+    "name": "Bluebird Labs",
+    "org": "Product research",
+    "logo": "/assets/images/partners/bluebird-labs.svg",
+    "url": "https://example.com/partners/bluebird-labs",
+    "order": 2
+  },
+  {
+    "name": "Copper Works",
+    "org": "Creative studio",
+    "logo": "/assets/images/partners/copper-works.svg",
+    "url": "https://example.com/partners/copper-works",
+    "order": 3
+  },
+  {
+    "name": "Greenline Group",
+    "org": "Operations team",
+    "logo": "/assets/images/partners/greenline-group.svg",
+    "url": "https://example.com/partners/greenline-group",
+    "order": 4
+  },
+  {
+    "name": "Redwood Digital",
+    "org": "Software team",
+    "logo": "/assets/images/partners/redwood-digital.svg",
+    "url": "https://example.com/partners/redwood-digital",
+    "order": 5
+  },
+  {
+    "name": "Harbor Studio",
+    "org": "Content team",
+    "logo": "/assets/images/partners/harbor-studio.svg",
+    "url": "https://example.com/partners/harbor-studio",
+    "order": 6
+  }
+]

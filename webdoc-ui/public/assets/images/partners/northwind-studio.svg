@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Northwind Studio">
+  <rect width="160" height="160" rx="32" fill="#0f766e"/>
+  <path d="M38 104V56l42 30V56" fill="none" stroke="#d1fae5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="112" cy="58" r="12" fill="#5eead4"/>
+  <path d="M96 104h32" stroke="#5eead4" stroke-width="10" stroke-linecap="round"/>
+</svg>

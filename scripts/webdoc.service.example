@@ -1,0 +1,43 @@
+# /etc/systemd/system/webdoc.service
+#
+# Prefer the binary's generated configuration:
+#   webdoc --print-systemd > webdoc.service
+#   webdoc --autostart true --no-logs
+#
+# This hand-written example is an alternative. Install the extracted release
+# package under /opt/webdoc, then:
+#   sudo useradd --system --home /var/lib/webdoc webdoc
+#   sudo install -d -o webdoc -g webdoc /var/lib/webdoc
+#   sudo cp scripts/webdoc.service.example /etc/systemd/system/webdoc.service
+#   sudo chmod 600 /etc/systemd/system/webdoc.service   # contains secrets
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now webdoc
+
+[Unit]
+Description=WebDoc website, CMS and API
+After=network-online.target mongod.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=webdoc
+Group=webdoc
+WorkingDirectory=/opt/webdoc
+ExecStart=/opt/webdoc/bin/webdoc \
+    --host 127.0.0.1 --port 18620 \
+    --api-prefix /api --admin-prefix /admin \
+    --mongodb-url mongodb://127.0.0.1:27017 --mongodb-db webdoc \
+    --jwt-secret change-me --admin-username admin --admin-password change-me \
+    --data-dir /var/lib/webdoc \
+    --upload-dir /var/lib/webdoc/uploads \
+    --cache-dir /tmp/webdoc --cache-ttl 120
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/webdoc /tmp/webdoc
+
+[Install]
+WantedBy=multi-user.target

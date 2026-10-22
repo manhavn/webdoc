@@ -1,0 +1,392 @@
+{
+  "colors": {
+    "primary": "#0f766e",
+    "primaryDark": "#115e59",
+    "accent": "#0891b2",
+    "background": "#ffffff",
+    "surface": "#f8fafc",
+    "text": "#0f172a",
+    "muted": "#64748b",
+    "border": "#e2e8f0",
+    "headerBackground": "#ffffff",
+    "headerText": "#0f172a",
+    "footerBackground": "#0b2b2a",
+    "footerText": "#d1fae5"
+  },
+  "fonts": {
+    "body": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "heading": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "baseSize": "16px",
+    "googleFontsUrl": ""
+  },
+  "background": {
+    "image": "",
+    "color": "#ffffff",
+    "overlay": 1,
+    "fixed": false
+  },
+  "header": {
+    "show": true,
+    "sticky": true,
+    "showSearch": true,
+    "showLanguage": true,
+    "background": "",
+    "text": "",
+    "ctaLabel": "Login",
+    "ctaLabelVi": "Đăng nhập",
+    "ctaUrl": "/admin/login",
+    "ctaLabels": {
+      "en": "Login",
+      "vi": "Đăng nhập"
+    }
+  },
+  "footer": {
+    "show": true,
+    "background": "",
+    "text": "",
+    "copyright": "© 2026 WebDoc Demo",
+    "note": "Fictional demo content for evaluation only.",
+    "links": [
+      {
+        "label": "About this demo",
+        "labelVi": "Về bản demo",
+        "href": "/about",
+        "labels": {
+          "en": "About this demo",
+          "vi": "Về bản demo"
+        }
+      },
+      {
+        "label": "Getting started",
+        "labelVi": "Bắt đầu",
+        "href": "/getting-started/overview",
+        "labels": {
+          "en": "Getting started",
+          "vi": "Bắt đầu"
+        }
+      },
+      {
+        "label": "Guides",
+        "labelVi": "Hướng dẫn",
+        "href": "/guides/pages",
+        "labels": {
+          "en": "Guides",
+          "vi": "Hướng dẫn"
+        }
+      },
+      {
+        "label": "Examples",
+        "labelVi": "Ví dụ",
+        "href": "/examples/landing",
+        "labels": {
+          "en": "Examples",
+          "vi": "Ví dụ"
+        }
+      },
+      {
+        "label": "Contact",
+        "labelVi": "Liên hệ",
+        "href": "/contact",
+        "labels": {
+          "en": "Contact",
+          "vi": "Liên hệ"
+        }
+      }
+    ],
+    "products": [
+      {
+        "label": "Demo Notes",
+        "labelVi": "Ghi chú demo",
+        "href": "https://example.com/demo-notes",
+        "labels": {
+          "en": "Demo Notes",
+          "vi": "Ghi chú demo"
+        }
+      },
+      {
+        "label": "Sample Guide",
+        "labelVi": "Hướng dẫn mẫu",
+        "href": "https://example.com/sample-guide",
+        "labels": {
+          "en": "Sample Guide",
+          "vi": "Hướng dẫn mẫu"
+        }
+      },
+      {
+        "label": "Example Toolkit",
+        "labelVi": "Bộ công cụ ví dụ",
+        "href": "https://example.com/example-toolkit",
+        "labels": {
+          "en": "Example Toolkit",
+          "vi": "Bộ công cụ ví dụ"
+        }
+      }
+    ]
+  },
+  "navigation": [
+    {
+      "label": "Home",
+      "labelVi": "Trang chủ",
+      "href": "/",
+      "links": [],
+      "labels": {
+        "en": "Home",
+        "vi": "Trang chủ"
+      }
+    },
+    {
+      "label": "Getting started",
+      "labelVi": "Bắt đầu",
+      "href": "/getting-started",
+      "links": [
+        {
+          "label": "Overview",
+          "labelVi": "Tổng quan",
+          "href": "overview",
+          "links": [],
+          "labels": {
+            "en": "Overview",
+            "vi": "Tổng quan"
+          }
+        },
+        {
+          "label": "Navigation and search",
+          "labelVi": "Điều hướng và tìm kiếm",
+          "href": "navigation",
+          "links": [],
+          "labels": {
+            "en": "Navigation and search",
+            "vi": "Điều hướng và tìm kiếm"
+          }
+        },
+        {
+          "label": "Content model",
+          "labelVi": "Cấu trúc nội dung",
+          "href": "content-model",
+          "links": [],
+          "labels": {
+            "en": "Content model",
+            "vi": "Cấu trúc nội dung"
+          }
+        },
+        {
+          "label": "Roles",
+          "labelVi": "Vai trò",
+          "href": "roles",
+          "links": [],
+          "labels": {
+            "en": "Roles",
+            "vi": "Vai trò"
+          }
+        }
+      ],
+      "labels": {
+        "en": "Getting started",
+        "vi": "Bắt đầu"
+      }
+    },
+    {
+      "label": "Guides",
+      "labelVi": "Hướng dẫn",
+      "href": "/guides",
+      "links": [
+        {
+          "label": "Pages",
+          "labelVi": "Trang",
+          "href": "pages",
+          "links": [],
+          "labels": {
+            "en": "Pages",
+            "vi": "Trang"
+          }
+        },
+        {
+          "label": "Homepage sections",
+          "labelVi": "Các phần trang chủ",
+          "href": "sections",
+          "links": [],
+          "labels": {
+            "en": "Homepage sections",
+            "vi": "Các phần trang chủ"
+          }
+        },
+        {
+          "label": "Theme",
+          "labelVi": "Giao diện",
+          "href": "theme",
+          "links": [],
+          "labels": {
+            "en": "Theme",
+            "vi": "Giao diện"
+          }
+        },
+        {
+          "label": "Menus and links",
+          "labelVi": "Menu và liên kết",
+          "href": "navigation",
+          "links": [],
+          "labels": {
+            "en": "Menus and links",
+            "vi": "Menu và liên kết"
+          }
+        },
+        {
+          "label": "Media",
+          "labelVi": "Hình ảnh",
+          "href": "media",
+          "links": [],
+          "labels": {
+            "en": "Media",
+            "vi": "Hình ảnh"
+          }
+        },
+        {
+          "label": "Contact form",
+          "labelVi": "Biểu mẫu liên hệ",
+          "href": "contact",
+          "links": [],
+          "labels": {
+            "en": "Contact form",
+            "vi": "Biểu mẫu liên hệ"
+          }
+        },
+        {
+          "label": "Languages",
+          "labelVi": "Ngôn ngữ",
+          "href": "languages",
+          "links": [],
+          "labels": {
+            "en": "Languages",
+            "vi": "Ngôn ngữ"
+          }
+        },
+        {
+          "label": "Backup",
+          "labelVi": "Sao lưu",
+          "href": "backup",
+          "links": [],
+          "labels": {
+            "en": "Backup",
+            "vi": "Sao lưu"
+          }
+        }
+      ],
+      "labels": {
+        "en": "Guides",
+        "vi": "Hướng dẫn"
+      }
+    },
+    {
+      "label": "Examples",
+      "labelVi": "Ví dụ",
+      "href": "/examples",
+      "links": [
+        {
+          "label": "Landing page",
+          "labelVi": "Trang giới thiệu",
+          "href": "landing",
+          "links": [],
+          "labels": {
+            "en": "Landing page",
+            "vi": "Trang giới thiệu"
+          }
+        },
+        {
+          "label": "Company page",
+          "labelVi": "Trang công ty",
+          "href": "company",
+          "links": [],
+          "labels": {
+            "en": "Company page",
+            "vi": "Trang công ty"
+          }
+        },
+        {
+          "label": "Support page",
+          "labelVi": "Trang hỗ trợ",
+          "href": "support",
+          "links": [],
+          "labels": {
+            "en": "Support page",
+            "vi": "Trang hỗ trợ"
+          }
+        },
+        {
+          "label": "FAQ",
+          "labelVi": "Câu hỏi thường gặp",
+          "href": "faq",
+          "links": [],
+          "labels": {
+            "en": "FAQ",
+            "vi": "Câu hỏi thường gặp"
+          }
+        },
+        {
+          "label": "Changelog",
+          "labelVi": "Lịch sử cập nhật",
+          "href": "changelog",
+          "links": [],
+          "labels": {
+            "en": "Changelog",
+            "vi": "Lịch sử cập nhật"
+          }
+        }
+      ],
+      "labels": {
+        "en": "Examples",
+        "vi": "Ví dụ"
+      }
+    },
+    {
+      "label": "About",
+      "labelVi": "Giới thiệu",
+      "href": "/about",
+      "links": [],
+      "labels": {
+        "en": "About",
+        "vi": "Giới thiệu"
+      }
+    },
+    {
+      "label": "Contact",
+      "labelVi": "Liên hệ",
+      "href": "/contact",
+      "links": [],
+      "labels": {
+        "en": "Contact",
+        "vi": "Liên hệ"
+      }
+    }
+  ],
+  "pages": [],
+  "theme": {
+    "default": "system",
+    "options": [
+      "system",
+      "light",
+      "dark"
+    ]
+  },
+  "cookie": {
+    "enabled": true,
+    "title": "",
+    "description": "",
+    "necessaryTitle": "",
+    "necessaryDescription": "",
+    "analyticsEnabled": true,
+    "analyticsDefault": true,
+    "analyticsTitle": "",
+    "analyticsDescription": "",
+    "marketingEnabled": true,
+    "marketingDefault": false,
+    "marketingTitle": "",
+    "marketingDescription": "",
+    "policyText": "",
+    "policyUrl": "",
+    "acceptAllText": "",
+    "onlyNecessaryText": "",
+    "saveText": "",
+    "closeText": "",
+    "footerText": ""
+  }
+}

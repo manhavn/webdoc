@@ -1,0 +1,312 @@
+{
+  "slug": "home",
+  "sections": [
+    {
+      "key": "hero",
+      "enabled": true,
+      "order": 1,
+      "data": {
+        "title": "A clean starting point for your next site",
+        "subtitle": "Explore a fully editable demo with sample pages, navigation and theme controls. Every name, image and contact detail is fictional and ready to replace.",
+        "primaryLabel": "Contact the demo team",
+        "primaryHref": "/contact",
+        "secondaryLabel": "Browse the documentation",
+        "secondaryHref": "/getting-started/overview",
+        "previewTitle": "Demo overview",
+        "previewNote": "A small, self-contained example project",
+        "previewItems": [
+          "Fictional pages and partner names",
+          "Editable homepage sections",
+          "Light and dark themes"
+        ]
+      }
+    },
+    {
+      "key": "benefits",
+      "enabled": true,
+      "order": 2,
+      "data": {
+        "title": "What can you explore?",
+        "items": [
+          {
+            "icon": "fa-layer-group",
+            "tone": "fuchsia",
+            "title": "Editable content tree",
+            "bullets": [
+              "Groups and pages with any nesting",
+              "Simple ordering controls",
+              "Visible or hidden items"
+            ]
+          },
+          {
+            "icon": "fa-pen-ruler",
+            "tone": "violet",
+            "title": "Design controls",
+            "bullets": [
+              "Colors and typography",
+              "Light and dark themes",
+              "Responsive layouts"
+            ]
+          },
+          {
+            "icon": "fa-sliders-h",
+            "tone": "indigo",
+            "title": "Simple administration",
+            "bullets": [
+              "Secure sign-in",
+              "Site identity settings",
+              "Backup and restore"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "evolution",
+      "enabled": true,
+      "order": 3,
+      "data": {
+        "title": "From blank install to demo site",
+        "subtitle": "The demo grows in three clear steps, with no hidden content or external dependencies.",
+        "items": [
+          {
+            "phase": "Step 1",
+            "badge": "gray",
+            "variant": "basic",
+            "title": "Start empty",
+            "titleColor": "text-gray-700",
+            "icon": "manual",
+            "strong": "Only the essentials",
+            "desc": "A new database contains the admin account and interface languages, with no sample content.",
+            "points": [
+              {
+                "ok": true,
+                "text": "Clean starting point"
+              },
+              {
+                "ok": true,
+                "text": "No external services required"
+              },
+              {
+                "ok": false,
+                "text": "No pages to browse yet"
+              },
+              {
+                "ok": false,
+                "text": "Homepage is still a fallback"
+              }
+            ]
+          },
+          {
+            "phase": "Step 2",
+            "badge": "amber",
+            "variant": "standard",
+            "title": "Add your content",
+            "titleColor": "text-amber-700",
+            "icon": "ojs",
+            "strong": "Pages, menus and theme",
+            "desc": "Create a page tree, choose the navigation and adjust the appearance from the admin area.",
+            "points": [
+              {
+                "ok": true,
+                "text": "Reusable page structure"
+              },
+              {
+                "ok": true,
+                "text": "Editable site settings"
+              },
+              {
+                "ok": true,
+                "text": "Language-ready interface"
+              },
+              {
+                "ok": false,
+                "text": "Content is still yours to write"
+              }
+            ]
+          },
+          {
+            "phase": "Step 3",
+            "badge": "fuchsia",
+            "variant": "premium",
+            "title": "Explore the demo",
+            "titleColor": "text-fuchsia-800 text-2xl",
+            "icon": "webdoc",
+            "strong": "Fictional sample content",
+            "desc": "The optional seed adds example pages, partners and a homepage so you can try every section.",
+            "points": [
+              {
+                "ok": true,
+                "text": "25 sample pages"
+              },
+              {
+                "ok": true,
+                "text": "Six example partners"
+              },
+              {
+                "ok": true,
+                "text": "Editable homepage sections"
+              },
+              {
+                "ok": true,
+                "text": "Safe to delete or replace"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "upgrade",
+      "enabled": true,
+      "order": 4,
+      "data": {
+        "title": "Two ways to explore the demo",
+        "cards": [
+          {
+            "headerTone": "gray",
+            "icon": "manual",
+            "heading": "Start with a blank install and add only the pages your team needs.",
+            "bullets": [
+              "Create groups and pages in the admin area",
+              "Choose a menu structure",
+              "Set colors, fonts and theme modes",
+              "Write content in plain HTML",
+              "Keep the public site focused",
+              "Use the documentation as a checklist"
+            ],
+            "statNumber": "0",
+            "statLabel": "sample pages before seeding"
+          },
+          {
+            "headerTone": "amber",
+            "icon": "ojs",
+            "heading": "Or load the seed to explore a complete set of fictional examples.",
+            "bullets": [
+              "A ready-made page tree",
+              "Example partner cards",
+              "Editable homepage sections",
+              "Generic contact details",
+              "No external accounts required",
+              "Replace or remove every item"
+            ],
+            "statNumber": "25",
+            "statLabel": "sample pages in the demo seed"
+          }
+        ]
+      }
+    },
+    {
+      "key": "journals",
+      "enabled": true,
+      "order": 5,
+      "data": {
+        "title": "Example partners"
+      }
+    },
+    {
+      "key": "features",
+      "enabled": true,
+      "order": 6,
+      "data": {
+        "title": "What the demo shows",
+        "items": [
+          {
+            "title": "Content tree",
+            "body": "Groups, pages and ordering are managed in one place without rebuilding the frontend."
+          },
+          {
+            "title": "Homepage sections",
+            "body": "Each section is optional and can be reordered or hidden from the admin area."
+          },
+          {
+            "title": "Appearance",
+            "body": "Colors, typography, header, footer and theme modes are data-driven."
+          },
+          {
+            "title": "Navigation",
+            "body": "Header and footer links are configured as simple data, including nested groups."
+          },
+          {
+            "title": "Languages",
+            "body": "The interface ships with English and Vietnamese dictionaries that can be edited."
+          },
+          {
+            "title": "Portable data",
+            "body": "Backups contain the database records and uploaded images in one archive."
+          }
+        ]
+      }
+    },
+    {
+      "key": "process",
+      "enabled": true,
+      "order": 7,
+      "data": {
+        "title": "A typical evaluation",
+        "steps": [
+          {
+            "title": "Step 1",
+            "desc": "Open the demo",
+            "icon": 1
+          },
+          {
+            "title": "Step 2",
+            "desc": "Browse the pages",
+            "icon": 2
+          },
+          {
+            "title": "Step 3",
+            "desc": "Edit the content",
+            "icon": 3
+          },
+          {
+            "title": "Step 4",
+            "desc": "Replace the samples",
+            "icon": 4
+          }
+        ]
+      }
+    },
+    {
+      "key": "deploy",
+      "enabled": true,
+      "order": 8,
+      "data": {
+        "title": "Ways to run the demo",
+        "plans": [
+          {
+            "icon": "fa-laptop",
+            "title": "Local evaluation",
+            "bullets": [
+              "Run the API and UI on one machine",
+              "Use a disposable database",
+              "Reset the seed whenever needed"
+            ]
+          },
+          {
+            "icon": "fa-box-open",
+            "title": "Self-hosted",
+            "bullets": [
+              "Deploy on your own infrastructure",
+              "Back up and restore portable data",
+              "Replace all sample content"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "contact",
+      "enabled": true,
+      "order": 9,
+      "data": {
+        "title": "Talk to the demo team",
+        "hotlineLabel": "Demo contact: 0000 0000",
+        "hotline": "0000 0000",
+        "formLabel": "Send a message",
+        "formHref": "/contact"
+      }
+    }
+  ]
+}
