@@ -6,43 +6,12 @@ pub mod docs;
 pub mod i18n;
 pub mod public;
 
-use mongodb::bson::{doc, oid::ObjectId, Bson, Document};
+use mongodb::bson::{doc, oid::ObjectId, Document};
 use mongodb::Database;
-use serde_json::{json, Value};
 
-use crate::bson_json::{document_to_json, json_to_bson};
 use crate::error::ApiError;
-use crate::models::{normalize_layout, SiteSettings, SiteSettingsInput};
+use crate::models::{CmsSettings, CmsSettingsInput, SiteSettings, SiteSettingsInput};
 
-const LAYOUT_JSON: &str = include_str!("../seed_data/layout.json");
-
-pub fn default_layout() -> Value {
-    serde_json::from_str(LAYOUT_JSON).unwrap_or_else(|_| json!({ "slug": "home", "sections": [] }))
-}
-
-pub async fn load_layout(db: &Database) -> Result<Value, ApiError> {
-    let layout = db.collection::<Document>("layout");
-    match layout.find_one(doc! { "slug": "home" }).await? {
-        Some(document) => {
-            let value = document_to_json(&document);
-            Ok(normalize_layout(&value).unwrap_or_else(|_| default_layout()))
-        }
-        None => Ok(default_layout()),
-    }
-}
-
-pub async fn save_layout(db: &Database, input: &Value) -> Result<Value, ApiError> {
-    let normalized = normalize_layout(input).map_err(ApiError::bad_request)?;
-    let Bson::Document(mut document) = json_to_bson(normalized.clone()) else {
-        return Err(ApiError::bad_request("Layout không hợp lệ."));
-    };
-    document.insert("slug", "home");
-    db.collection::<Document>("layout")
-        .update_one(doc! { "slug": "home" }, doc! { "$set": document })
-        .upsert(true)
-        .await?;
-    Ok(normalized)
-}
 
 pub async fn load_site(db: &Database) -> Result<SiteSettings, ApiError> {
     let settings = db
@@ -62,18 +31,71 @@ pub async fn save_site(db: &Database, input: SiteSettingsInput) -> Result<SiteSe
         .update_one(doc! { "key": "site" }, doc! { "$set": document })
         .upsert(true)
         .await?;
+
+    if let Ok(mut cms) = load_cms_settings(db).await {
+        if cms.brand_name.is_empty() || cms.brand_name == "WebDoc Demo" {
+            cms.brand_name = settings.site_name.clone();
+            let mut cms_doc = mongodb::bson::to_document(&cms)?;
+            cms_doc.insert("key", "cms");
+            let _ = db
+                .collection::<Document>("settings")
+                .update_one(doc! { "key": "cms" }, doc! { "$set": cms_doc })
+                .upsert(true)
+                .await;
+        }
+    }
+
     Ok(settings)
 }
 
-pub fn bson_to_i32(value: &Bson) -> i32 {
-    match value {
-        Bson::Int32(v) => *v,
-        Bson::Int64(v) => *v as i32,
-        Bson::Double(v) => *v as i32,
-        Bson::Decimal128(v) => v.to_string().parse().unwrap_or(0),
-        _ => 0,
+pub async fn load_cms_settings(db: &Database) -> Result<CmsSettings, ApiError> {
+    let settings = db
+        .collection::<CmsSettings>("settings")
+        .find_one(doc! { "key": "cms" })
+        .await?;
+    let mut cms = settings.unwrap_or_default();
+    if cms.brand_name.is_empty() || cms.brand_name == "WebDoc Demo" {
+        if let Ok(site) = load_site(db).await {
+            if !site.site_name.is_empty() && site.site_name != "WebDoc Demo" {
+                cms.brand_name = site.site_name;
+            }
+        }
     }
+    if cms.login_panel_bg.is_empty() && !cms.colors.login_panel_bg.is_empty() {
+        cms.login_panel_bg = cms.colors.login_panel_bg.clone();
+    } else if !cms.login_panel_bg.is_empty() && cms.colors.login_panel_bg.is_empty() {
+        cms.colors.login_panel_bg = cms.login_panel_bg.clone();
+    }
+    Ok(cms)
 }
+
+pub async fn save_cms_settings(
+    db: &Database,
+    input: CmsSettingsInput,
+) -> Result<CmsSettings, ApiError> {
+    let mut settings = load_cms_settings(db).await?;
+    settings.apply(input);
+
+    let mut document = mongodb::bson::to_document(&settings)?;
+    document.insert("key", "cms");
+    db.collection::<Document>("settings")
+        .update_one(doc! { "key": "cms" }, doc! { "$set": document })
+        .upsert(true)
+        .await?;
+    Ok(settings)
+}
+
+pub async fn reset_cms_settings(db: &Database) -> Result<CmsSettings, ApiError> {
+    let defaults = CmsSettings::default();
+    let mut document = mongodb::bson::to_document(&defaults)?;
+    document.insert("key", "cms");
+    db.collection::<Document>("settings")
+        .update_one(doc! { "key": "cms" }, doc! { "$set": document })
+        .upsert(true)
+        .await?;
+    Ok(defaults)
+}
+
 
 pub fn parse_object_id(value: &str) -> Result<ObjectId, ApiError> {
     ObjectId::parse_str(value.trim()).map_err(|_| ApiError::bad_request("ID không hợp lệ."))

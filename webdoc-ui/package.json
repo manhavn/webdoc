@@ -1,11 +1,12 @@
 {
   "name": "webdoc-ui",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite --port 5173",
     "build": "vite build",
+    "test": "node --test test/",
     "preview": "vite preview --port 4173"
   },
   "dependencies": {

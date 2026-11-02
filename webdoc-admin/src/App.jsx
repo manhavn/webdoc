@@ -8,6 +8,7 @@ import Docs from './pages/Docs';
 import Backup from './pages/Backup';
 import SiteSettings from './pages/SiteSettings';
 import Appearance from './pages/Appearance';
+import CmsSettings from './pages/CmsSettings';
 import Homepage from './pages/Homepage';
 import Languages from './pages/Languages';
 
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="backup" element={<Backup />} />
         <Route path="site" element={<SiteSettings />} />
         <Route path="appearance" element={<Appearance />} />
+        <Route path="cms-settings" element={<CmsSettings />} />
         <Route path="homepage" element={<Homepage />} />
         <Route path="languages" element={<Languages />} />
       </Route>

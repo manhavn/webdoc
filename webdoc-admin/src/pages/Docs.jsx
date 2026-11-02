@@ -68,16 +68,19 @@ function DocRow({
   first,
   last,
   movingId,
+  togglingId,
   onToggle,
   onAddChild,
   onEdit,
   onDelete,
   onMove,
+  onTogglePublish,
 }) {
   const { t } = useI18n();
   const children = tree.get(node.id) || [];
   const open = expanded.has(node.id);
-  const busy = movingId === node.id;
+  const busy = movingId === node.id || togglingId === node.id;
+  const isToggling = togglingId === node.id;
 
   return (
     <Fragment>
@@ -145,6 +148,20 @@ function DocRow({
             </button>
             <button
               type="button"
+              className={`icon-button docs-action-toggle ${node.published ? 'docs-action-published' : 'docs-action-hidden'}`}
+              title={node.published ? t('docs.hide') : t('docs.show')}
+              aria-label={
+                node.published
+                  ? t('docs.hideAria', { title: node.title })
+                  : t('docs.showAria', { title: node.title })
+              }
+              disabled={busy || isToggling}
+              onClick={() => onTogglePublish(node)}
+            >
+              <Icon name={node.published ? 'eye' : 'eyeOff'} size={16} />
+            </button>
+            <button
+              type="button"
               className="icon-button"
               title={t('docs.moveUp')}
               aria-label={t('docs.moveUpAria', { title: node.title })}
@@ -187,11 +204,13 @@ function DocRow({
             first={index === 0}
             last={index === children.length - 1}
             movingId={movingId}
+            togglingId={togglingId}
             onToggle={onToggle}
             onAddChild={onAddChild}
             onEdit={onEdit}
             onDelete={onDelete}
             onMove={onMove}
+            onTogglePublish={onTogglePublish}
           />
         ))}
     </Fragment>
@@ -207,6 +226,7 @@ export default function Docs() {
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(() => new Set());
   const [movingId, setMovingId] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
   const initExpanded = useRef(false);
 
   const [editor, setEditor] = useState(null);
@@ -473,6 +493,34 @@ export default function Docs() {
       setMovingId(null);
     }
   }
+  async function handleTogglePublish(node) {
+    if (togglingId) return;
+    const nextPublished = !node.published;
+    setTogglingId(node.id);
+    try {
+      await api.updateDoc(node.id, { published: nextPublished });
+      setNodes((current) =>
+        current.map((item) =>
+          item.id === node.id ? { ...item, published: nextPublished } : item
+        )
+      );
+      if (original?.id === node.id) {
+        setOriginal((cur) => (cur ? { ...cur, published: nextPublished } : cur));
+        setForm((cur) => ({ ...cur, published: nextPublished }));
+      }
+      toast.success(
+        nextPublished
+          ? t('docs.publishSuccess', { title: node.title || t('docs.noTitle') })
+          : t('docs.hideSuccess', { title: node.title || t('docs.noTitle') })
+      );
+    } catch (err) {
+      toast.error(err.message || t('docs.toggleError'));
+      await load();
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
 
   async function handleDelete() {
     if (!deleting) return;
@@ -586,6 +634,8 @@ export default function Docs() {
                   setDeleting(target);
                 }}
                 onMove={handleMove}
+                onTogglePublish={handleTogglePublish}
+                togglingId={togglingId}
               />
             ))}
           </div>

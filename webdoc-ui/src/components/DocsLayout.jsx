@@ -154,9 +154,9 @@ function docToSidebar(node, level = 0, skipGroups = false) {
     text: node.title,
     link,
     order: node.order,
-    items: (node.children || []).map((child) =>
-      docToSidebar(child, level + 1, skipGroups),
-    ),
+    items: (node.children || [])
+      .filter((child) => child.published !== false)
+      .map((child) => docToSidebar(child, level + 1, skipGroups)),
   }
 }
 
@@ -167,6 +167,7 @@ function Sidebar({ activePath, activeCategory, open, onNavigate }) {
   const groups = useMemo(
     () =>
       [...docsTree]
+        .filter((node) => node.published !== false)
         .sort((a, b) => (a.order || 0) - (b.order || 0))
         .map((node) => docToSidebar(node, 0, skipGroups)),
     [docsTree, skipGroups],

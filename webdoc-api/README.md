@@ -280,8 +280,8 @@ trail from the root to the direct parent (`[{title,path}]`, self excluded):
 ```
 
 Unpublished or unknown paths return `404 {"error": "…"}`. Only published nodes
-are ever exposed publicly; children of an unpublished node are promoted to
-roots in the tree so the navigation never loses pages.
+are ever exposed publicly; children of an unpublished node are not exposed
+in the public tree to preserve category hierarchy.
 
 ### Admin payloads
 
@@ -452,7 +452,7 @@ carry a strong `ETag` and honour `If-None-Match` (`304`).
   },
   "background": { "image": "", "color": "#ffffff", "overlay": 1, "fixed": false },
   "header": {
-    "show": true, "sticky": true, "showSearch": true, "showLanguage": true,
+    "show": true, "sticky": true, "showNavigation": true, "showSearch": true, "showLanguage": true,
     "background": "", "text": "", "ctaLabel": "", "ctaLabelVi": "", "ctaUrl": ""
   },
   "footer": {

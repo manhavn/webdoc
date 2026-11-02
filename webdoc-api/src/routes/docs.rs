@@ -47,7 +47,18 @@ pub async fn page(
         .await?
         .ok_or_else(|| ApiError::not_found("Không tìm thấy trang tài liệu."))?;
 
-    Ok(Json(build_page(&state, node).await?))
+    let published = docs::load_published(&state.db).await?;
+    let by_id = published
+        .iter()
+        .cloned()
+        .map(|doc| (doc.id, doc))
+        .collect::<std::collections::HashMap<_, _>>();
+
+    if !docs::is_ancestry_published(&node, &by_id) {
+        return Err(ApiError::not_found("Không tìm thấy trang tài liệu."));
+    }
+
+    Ok(Json(build_page(&state, node, published, &by_id).await?))
 }
 
 /// `GET /api/docs/by-id/:id` — same payload as `/api/docs/page`.
@@ -61,17 +72,27 @@ pub async fn by_id(
         .filter(|node| node.published)
         .ok_or_else(|| ApiError::not_found("Không tìm thấy trang tài liệu."))?;
 
-    Ok(Json(build_page(&state, node).await?))
-}
-
-async fn build_page(state: &AppState, node: DocNode) -> Result<DocPageDto, ApiError> {
     let published = docs::load_published(&state.db).await?;
     let by_id = published
         .iter()
         .cloned()
         .map(|doc| (doc.id, doc))
         .collect::<std::collections::HashMap<_, _>>();
-    let breadcrumbs = docs::breadcrumbs(&node, &by_id);
+
+    if !docs::is_ancestry_published(&node, &by_id) {
+        return Err(ApiError::not_found("Không tìm thấy trang tài liệu."));
+    }
+
+    Ok(Json(build_page(&state, node, published, &by_id).await?))
+}
+
+async fn build_page(
+    _state: &AppState,
+    node: DocNode,
+    published: Vec<DocNode>,
+    by_id: &std::collections::HashMap<ObjectId, DocNode>,
+) -> Result<DocPageDto, ApiError> {
+    let breadcrumbs = docs::breadcrumbs(&node, by_id);
     let children = docs::child_summaries(published, node.id);
 
     Ok(DocPageDto {

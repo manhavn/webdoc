@@ -486,6 +486,7 @@ mod tests {
         assert_eq!(value["colors"]["primaryDark"], "#115e59");
         assert_eq!(value["header"]["show"], false);
         assert_eq!(value["header"]["sticky"], true);
+        assert_eq!(value["header"]["showNavigation"], true);
         assert!(value.get("unknown").is_none());
     }
 

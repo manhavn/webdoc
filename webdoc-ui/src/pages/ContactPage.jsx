@@ -1,14 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useContent } from '../lib/ContentContext'
 import { api } from '../lib/api'
 import { useI18n } from '../i18n/I18nContext'
 import PageShell from '../components/PageShell'
+import { formatDocumentTitle } from '../lib/title'
 
 export default function ContactPage() {
   const { site } = useContent()
   const { t } = useI18n()
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' })
   const [state, setState] = useState({ status: 'idle', error: '' })
+  useEffect(() => {
+    document.title = formatDocumentTitle(t('contact.title') || 'Contact', site.siteName)
+  }, [site.siteName, t])
+
 
   const update = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 

@@ -16,6 +16,7 @@ import { useRouteProgress } from '../lib/routeProgress'
 import DocsLayout from '../components/DocsLayout'
 import NotFound from './NotFound'
 import { useI18n } from '../i18n/I18nContext'
+import { formatDocumentTitle } from '../lib/title'
 
 function plainText(value = '') {
   if (typeof document === 'undefined') return value
@@ -52,28 +53,64 @@ function DocSkeleton({ label }) {
 export default function DocPage() {
   const params = useParams()
   const path = normalizeDocPath(params['*'])
-  const { docsTree, site } = useContent()
+  const { docsTree, site, loading: contentLoading } = useContent()
   const { t } = useI18n()
   const onInternalClick = useInternalLinks()
   const { setLoading: setRouteLoading } = useRouteProgress()
   const [doc, setDoc] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const docLinks = useMemo(() => flattenDocs(docsTree), [docsTree])
+  const fallbackLinks = useMemo(() => flattenDocs(fallbackDocsTree), [])
+  const links = docLinks.length > 0 ? docLinks : fallbackLinks
+  const skipGroups = Boolean(site.docsSkipGroups)
+
+  const treeNode = useMemo(
+    () => findDoc(docsTree, path) || fallbackDoc(path),
+    [docsTree, path],
+  )
+  const isGroup = Boolean(treeNode?.group)
+  const firstArticle = useMemo(() => {
+    if (!skipGroups) return null
+    if (isGroup) {
+      const fromTree = firstArticlePath(treeNode)
+      if (fromTree) return fromTree
+    }
+    const prefixMatch = links.find(
+      (item) => !item.group && item.link && item.link.startsWith(path + '/'),
+    )
+    return prefixMatch ? prefixMatch.link : null
+  }, [skipGroups, isGroup, treeNode, links, path])
   useEffect(() => {
+    if (contentLoading) return
+
+    if (skipGroups && (isGroup || firstArticle)) {
+      if (!firstArticle) {
+        setDoc(null)
+        setLoading(false)
+      }
+      return
+    }
+
     let alive = true
     setLoading(true)
-    // The previous article stays mounted (see the loading branch below) so the
-    // swap has nothing to blank out; only the header bar reports the fetch.
     api
       .get(`/docs/page?path=${encodeURIComponent(path)}`)
       .then((res) => {
-        if (alive) setDoc({ ...res, source: 'api' })
+        if (!alive) return
+        if (skipGroups && res?.group) {
+          const target =
+            firstArticlePath(findDoc(docsTree, res.path)) ||
+            firstArticlePath(res)
+          if (target) {
+            setDoc(null)
+            return
+          }
+        }
+        setDoc({ ...res, source: 'api' })
       })
       .catch((error) => {
         if (!alive) return
-        // A 404 means the database has no such page. Only use bundled demo
-        // content when the API itself is unreachable, so an empty install
-        // does not silently show sample articles.
         if (error && error.status === 404) {
           setDoc(null)
           return
@@ -85,8 +122,7 @@ export default function DocPage() {
     return () => {
       alive = false
     }
-  }, [path])
-
+  }, [path, contentLoading, skipGroups, isGroup, firstArticle, docsTree])
   // A switch is in flight only when there is an article on screen to keep.
   const swapping = loading && Boolean(doc)
   useEffect(() => {
@@ -99,10 +135,20 @@ export default function DocPage() {
     [doc?.content],
   )
 
-  const docLinks = useMemo(() => flattenDocs(docsTree), [docsTree])
-  const fallbackLinks = useMemo(() => flattenDocs(fallbackDocsTree), [])
-  const links = docLinks.length > 0 ? docLinks : fallbackLinks
-  const skipGroups = Boolean(site.docsSkipGroups)
+  useEffect(() => {
+    if (skipGroups) {
+      const node = findDoc(docsTree, path) || fallbackDoc(path)
+      if (node && node.group) return
+    }
+    const current =
+      (doc && doc.path === path ? doc : null) ||
+      findDoc(docsTree, path) ||
+      fallbackDoc(path) ||
+      doc
+    if (!current) return
+    const pageTitle = current.title?.trim() || t('doc.defaultTitle')
+    document.title = formatDocumentTitle(pageTitle, site.siteName)
+  }, [doc, docsTree, path, skipGroups, site.siteName, t])
   // Group pages are containers when the option is on, so they never appear in
   // the previous/next sequence: moving past a group edge lands on the last
   // article of the previous group or the first article of the next one.
@@ -118,6 +164,26 @@ export default function DocPage() {
   const group = Boolean(doc?.group)
   const children = doc?.children || []
 
+  if (contentLoading) {
+    return (
+      <DocsLayout contentKey="loading">
+        <DocSkeleton label={t('doc.loading')} />
+      </DocsLayout>
+    )
+  }
+
+  if (skipGroups && (isGroup || firstArticle)) {
+    if (firstArticle) {
+      return (
+        <DocsLayout contentKey="loading">
+          <DocSkeleton label={t('doc.loading')} />
+          <Navigate to={firstArticle} replace />
+        </DocsLayout>
+      )
+    }
+    return <NotFound />
+  }
+
   if (loading && !doc) {
     return (
       <DocsLayout contentKey="loading">
@@ -130,12 +196,9 @@ export default function DocPage() {
     return <NotFound />
   }
 
-  // With the option on a group is not a destination: open the first article of
-  // the innermost nested group. A group without any article returns 404. The
-  // docs shell stays mounted during the redirect: returning a bare Navigate
-  // would unmount it for a frame and leak the marketing footer.
   if (skipGroups && doc.group) {
-    const first = firstArticlePath(doc)
+    const first =
+      firstArticlePath(findDoc(docsTree, doc.path)) || firstArticlePath(doc)
     if (!first) return <NotFound />
     return (
       <DocsLayout contentKey="loading">

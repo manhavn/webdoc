@@ -17,8 +17,6 @@ pub async fn connect(config: &Config) -> mongodb::error::Result<Database> {
 /// only creates the indexes that are missing.
 pub async fn ensure_indexes(db: &Database) -> mongodb::error::Result<()> {
     unique_index(db, "users", "username").await?;
-    unique_index(db, "pages", "slug").await?;
-    unique_index(db, "layout", "slug").await?;
     unique_index(db, "docs", "path").await?;
     unique_index(db, "i18n", "code").await?;
 

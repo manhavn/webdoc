@@ -1,6 +1,6 @@
 [package]
 name = "webdoc-api"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "REST API for the WebDoc scientific journal publishing website"
 license = "MIT"

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../i18n/I18nContext';
+import { useCms } from '../context/CmsContext';
 import Icon from '../components/Icons';
 import LangSwitch from '../components/LangSwitch';
 import ThemeSwitch from '../components/ThemeSwitch';
@@ -9,6 +10,7 @@ import ThemeSwitch from '../components/ThemeSwitch';
 export default function Login() {
   const { user, loading, login } = useAuth();
   const { t, lang } = useI18n();
+  const { cms } = useCms();
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState('');
@@ -20,8 +22,8 @@ export default function Login() {
   const redirectTo = location.state?.from || '/';
 
   useEffect(() => {
-    document.title = `${t('login.cardTitle')} — ${t('brand.name')}`;
-  }, [lang, t]);
+    document.title = `${cms.loginTitle || t('login.cardTitle')} — ${cms.brandName || t('brand.name')}`;
+  }, [lang, t, cms.loginTitle, cms.brandName]);
 
   if (!loading && user) {
     return <Navigate to={redirectTo} replace />;
@@ -41,20 +43,33 @@ export default function Login() {
     }
   }
 
+  const loginPanelBg = cms?.colors?.loginPanelBg || cms?.loginPanelBg;
+
   return (
     <div className="login-page">
-      <div className="login-panel">
+      <div
+        className="login-panel"
+        style={loginPanelBg ? { background: loginPanelBg } : undefined}
+      >
         <div className="login-brand">
-          <span className="brand-mark brand-mark-lg">O</span>
+          {cms.logoUrl ? (
+            <img
+              src={cms.logoUrl}
+              alt={cms.brandName || t('brand.name')}
+              className="brand-logo-img-lg"
+            />
+          ) : (
+            <span className="brand-mark brand-mark-lg">{cms.logoChar || 'O'}</span>
+          )}
           <div>
-            <strong>{t('brand.name')}</strong>
-            <small>{t('login.brandSub')}</small>
+            <strong>{cms.brandName || t('brand.name')}</strong>
+            <small>{cms.brandSubname || t('login.brandSub')}</small>
           </div>
         </div>
 
         <div className="login-copy">
-          <h1>{t('login.heading')}</h1>
-          <p>{t('login.description')}</p>
+          <h1>{cms.loginWelcome || t('login.heading')}</h1>
+          <p>{cms.loginDescription || t('login.description')}</p>
           <ul>
             <li>
               <Icon name="docs" size={18} /> {t('login.featureTree')}
@@ -65,7 +80,7 @@ export default function Login() {
           </ul>
         </div>
 
-        <p className="login-footnote">{t('login.footnote')}</p>
+        <p className="login-footnote">{cms.footerText || t('login.footnote')}</p>
       </div>
 
       <div className="login-form-wrap">
@@ -76,8 +91,8 @@ export default function Login() {
 
         <form className="login-card" onSubmit={handleSubmit}>
           <div className="login-card-head">
-            <h2>{t('login.cardTitle')}</h2>
-            <p>{t('login.cardSubtitle')}</p>
+            <h2>{cms.loginTitle || t('login.cardTitle')}</h2>
+            <p>{cms.loginSubtitle || t('login.cardSubtitle')}</p>
           </div>
 
           {error && <div className="alert alert-error">{error}</div>}

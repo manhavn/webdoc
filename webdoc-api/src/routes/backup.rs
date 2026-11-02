@@ -115,7 +115,12 @@ pub async fn export(
 
     let mut collections: Vec<(String, i64)> = Vec::with_capacity(names.len());
     for name in names {
-        if name.starts_with("system.") {
+        if name.starts_with("system.")
+            || name == "pages"
+            || name == "journals"
+            || name == "partners"
+            || name == "layout"
+        {
             continue;
         }
         validate_collection_name(&name)?;
@@ -512,6 +517,13 @@ fn stage_import(zip_path: &Path, staging_path: &Path) -> Result<StagedBackup, Ap
                 "Dữ liệu JSON của bộ sưu tập \"{collection}\" không hợp lệ."
             ))
         })?;
+        if collection == "journals"
+            || collection == "partners"
+            || collection == "pages"
+            || collection == "layout"
+        {
+            continue;
+        }
         validate_document_ids(&collection, &documents)?;
         collections.push((collection, documents));
     }

@@ -41,9 +41,15 @@ test('normalizeAppearance fills defaults for partial and malformed documents', (
   assert.equal(normalized.background.overlay, 1);
   assert.equal(normalized.background.fixed, true);
   assert.equal(normalized.header.sticky, false);
+  assert.equal(normalized.header.showNavigation, true);
   assert.equal(normalized.header.showSearch, false);
   assert.equal(normalized.footer.show, false);
   assert.equal(normalized.header.ctaUrl, '');
+
+  const disabledNav = normalizeAppearance({
+    header: { showNavigation: false },
+  });
+  assert.equal(disabledNav.header.showNavigation, false);
 });
 
 test('navigation, footer links and pages are normalized and invalid entries dropped', () => {
@@ -188,6 +194,7 @@ test('buildAppearancePayload returns the exact PUT payload and trims text fields
   assert.deepEqual(payload.header, {
     show: true,
     sticky: false,
+    showNavigation: true,
     showSearch: true,
     showLanguage: false,
     background: '',

@@ -129,6 +129,11 @@ export const api = {
   updateAppearance: (payload) =>
     request('/admin/appearance', { method: 'PUT', body: payload }),
 
+  getCms: () => request('/admin/cms'),
+  getPublicCms: () => request('/settings/cms'),
+  updateCms: (payload) => request('/admin/cms', { method: 'PUT', body: payload }),
+  resetCms: () => request('/admin/cms/reset', { method: 'POST' }),
+
   upload: (file) => {
     const form = new FormData();
     form.append('file', file);

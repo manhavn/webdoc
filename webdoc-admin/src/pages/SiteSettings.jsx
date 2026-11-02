@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useI18n } from '../i18n/I18nContext';
 import Icon from '../components/Icons';
 import { useToast } from '../components/Toast';
+import { useCms } from '../context/CmsContext';
 
 const FIELDS = [
   {
@@ -87,6 +88,7 @@ const EMPTY_SITE = {
   favicon: '',
   ogImage: '',
   docsSkipGroups: false,
+  skipHomepage: false,
 };
 
 function ImageField({ field, value, onChange }) {
@@ -160,6 +162,7 @@ function ImageField({ field, value, onChange }) {
 export default function SiteSettings() {
   const { t } = useI18n();
   const toast = useToast();
+  const { refreshCms } = useCms();
   const [form, setForm] = useState(EMPTY_SITE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -184,6 +187,7 @@ export default function SiteSettings() {
         favicon: data?.favicon || '',
         ogImage: data?.ogImage || '',
         docsSkipGroups: Boolean(data?.docsSkipGroups),
+        skipHomepage: Boolean(data?.skipHomepage),
       });
     } catch (err) {
       setError(err.message || t('site.error'));
@@ -226,8 +230,10 @@ export default function SiteSettings() {
         favicon: form.favicon.trim(),
         ogImage: form.ogImage.trim(),
         docsSkipGroups: Boolean(form.docsSkipGroups),
+        skipHomepage: Boolean(form.skipHomepage),
       };
       await api.updateSite(payload);
+      await refreshCms();
       toast.success(t('site.saved'));
     } catch (err) {
       setError(err.message || t('site.saveError'));
@@ -340,6 +346,20 @@ export default function SiteSettings() {
           <span className="toggle-text">
             <strong>{t('site.skipGroups')}</strong>
             <small>{t('site.skipGroupsHint')}</small>
+          </span>
+        </label>
+        <label className="toggle-field">
+          <span className="switch">
+            <input
+              type="checkbox"
+              checked={form.skipHomepage}
+              onChange={(event) => update('skipHomepage', event.target.checked)}
+            />
+            <span className="switch-track" aria-hidden="true" />
+          </span>
+          <span className="toggle-text">
+            <strong>{t('site.skipHomepage')}</strong>
+            <small>{t('site.skipHomepageHint')}</small>
           </span>
         </label>
       </section>

@@ -76,9 +76,9 @@ pub fn compare_nodes(a: &DocNode, b: &DocNode) -> std::cmp::Ordering {
         .then_with(|| a.path.cmp(&b.path))
 }
 
-/// Build the nested tree from a flat list. Nodes whose parent is not part of
-/// the list (for example an unpublished parent) are promoted to roots so they
-/// never disappear from the navigation.
+/// Build the nested tree from a flat list of published nodes.
+/// Only nodes without a parent are roots; children of unpublished parents are
+/// not promoted to roots to prevent breaking tree hierarchy.
 pub fn build_tree(mut nodes: Vec<DocNode>) -> Vec<DocSummaryDto> {
     nodes.sort_by(compare_nodes);
     let ids = nodes.iter().map(|node| node.id).collect::<HashSet<_>>();
@@ -86,10 +86,12 @@ pub fn build_tree(mut nodes: Vec<DocNode>) -> Vec<DocSummaryDto> {
     let mut roots = Vec::new();
     for node in nodes {
         match node.parent_id {
-            Some(parent) if ids.contains(&parent) => {
-                by_parent.entry(parent).or_default().push(node);
+            Some(parent) => {
+                if ids.contains(&parent) {
+                    by_parent.entry(parent).or_default().push(node);
+                }
             }
-            _ => roots.push(node),
+            None => roots.push(node),
         }
     }
     roots
@@ -149,6 +151,23 @@ pub fn breadcrumbs(node: &DocNode, by_id: &HashMap<ObjectId, DocNode>) -> Vec<Do
     }
     trail.reverse();
     trail
+}
+
+/// Verify that every ancestor of `node` is present in `by_id` (meaning every ancestor is published).
+pub fn is_ancestry_published(node: &DocNode, by_id: &HashMap<ObjectId, DocNode>) -> bool {
+    let mut cursor = node.parent_id;
+    let mut guard = 0usize;
+    while let Some(id) = cursor {
+        guard += 1;
+        if guard > 512 {
+            return false;
+        }
+        let Some(parent) = by_id.get(&id) else {
+            return false;
+        };
+        cursor = parent.parent_id;
+    }
+    true
 }
 
 pub async fn load_published(db: &Database) -> Result<Vec<DocNode>, ApiError> {
@@ -371,12 +390,11 @@ mod tests {
     }
 
     #[test]
-    fn promotes_orphans_to_roots() {
+    fn ignores_orphans_whose_parent_is_missing() {
         let missing = ObjectId::new();
         let orphan = ObjectId::new();
         let tree = build_tree(vec![node(orphan, "/orphan", Some(missing), 1)]);
-        assert_eq!(tree.len(), 1);
-        assert_eq!(tree[0].path, "/orphan");
+        assert_eq!(tree.len(), 0);
     }
 
     #[test]

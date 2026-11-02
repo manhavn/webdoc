@@ -1,4 +1,4 @@
-import fallbackFlat from '../data/docs.json'
+import fallbackFlat from '../data/docs.json' with { type: 'json' }
 
 export const fallbackDocsFlat = fallbackFlat
 
@@ -13,7 +13,7 @@ export function buildDocsTree(flat) {
     const item = byPath.get(node.path)
     if (node.parentPath && byPath.has(node.parentPath)) {
       byPath.get(node.parentPath).children.push(item)
-    } else {
+    } else if (!node.parentPath) {
       roots.push(item)
     }
   })
@@ -68,6 +68,20 @@ export function firstArticlePath(node) {
   return null
 }
 
+export function findFirstDocPath(nodes) {
+  if (!Array.isArray(nodes) || nodes.length === 0) return null
+  for (const node of nodes) {
+    if (node.published === false) continue
+    if (node.group) {
+      const nested = firstArticlePath(node)
+      if (nested) return nested
+    } else if (node.path) {
+      return node.path
+    }
+  }
+  return null
+}
+
 /* Canonical form used for route params and URLs: leading slash, no trailing
    slash (except the root). */
 export function normalizeDocPath(value) {
@@ -77,6 +91,7 @@ export function normalizeDocPath(value) {
 
 export function findDoc(nodes, path) {
   for (const node of nodes) {
+    if (node.published === false) continue
     if (node.path === path) return node
     if (node.children && node.children.length) {
       const hit = findDoc(node.children, path)

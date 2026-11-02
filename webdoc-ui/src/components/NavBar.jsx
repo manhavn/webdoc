@@ -7,6 +7,7 @@ import { useContent } from '../lib/ContentContext'
 import { useTheme } from '../theme/ThemeContext'
 import { useI18n } from '../i18n/I18nContext'
 import { localizedLabel } from '../data/appearance'
+import { findFirstDocPath } from '../lib/docs'
 
 /* The admin app is a separate SPA mounted under /admin. A public-site Link
    would route it through the docs catch-all, so admin URLs need a real page
@@ -216,7 +217,9 @@ export default function NavBar() {
   const hoveredMenu = useRef(null)
   const openedByHover = useRef(null)
   const suppressFocusOpen = useRef(false)
-  const { site, appearance } = useContent()
+  const { site, appearance, docsTree } = useContent()
+  const firstDocPath = useMemo(() => findFirstDocPath(docsTree), [docsTree])
+  const homeTarget = site?.skipHomepage && firstDocPath ? firstDocPath : '/'
   const { t, lang } = useI18n()
   const { resolved } = useTheme()
   const fallbackLogo =
@@ -227,6 +230,7 @@ export default function NavBar() {
   const header = appearance.header
   const showHeader = header.show !== false
   const sticky = header.sticky !== false
+  const showNavigation = header.showNavigation !== false
   const showSearch = header.showSearch !== false
   const showLanguage = header.showLanguage !== false
   const ctaLabel = String(
@@ -244,8 +248,8 @@ export default function NavBar() {
   // Navigation is data-only. An empty/missing navigation array means the
   // site has no menu yet; no built-in demo menu is injected.
   const menus = useMemo(
-    () => customMenus(appearance.navigation, lang),
-    [appearance.navigation, lang],
+    () => (showNavigation ? customMenus(appearance.navigation, lang) : []),
+    [appearance.navigation, lang, showNavigation],
   )
 
   useEffect(() => {
@@ -424,7 +428,7 @@ export default function NavBar() {
                   <Link
                     className="title"
                     data-v-8f6fe741=""
-                    to="/"
+                    to={homeTarget}
                     aria-label={t('nav.logoLabel')}
                   >
                     <img
@@ -460,13 +464,14 @@ export default function NavBar() {
                       </div>
                     </div>
                   )}
-                  <nav
-                    aria-labelledby="main-nav-aria-label"
-                    className="VPNavBarMenu menu" data-v-99773bcd="" data-v-b70e7c48=""
-                  >
-                    <span id="main-nav-aria-label" className="visually-hidden">
-                      {t('nav.mainNavigation')}
-                    </span>
+                  {(menus.length > 0 || (ctaLabel && ctaUrl)) && (
+                    <nav
+                      aria-labelledby="main-nav-aria-label"
+                      className="VPNavBarMenu menu" data-v-99773bcd="" data-v-b70e7c48=""
+                    >
+                      <span id="main-nav-aria-label" className="visually-hidden">
+                        {t('nav.mainNavigation')}
+                      </span>
                     {menus.map((menu, idx) =>
                       menu.links.length > 0 ? (
                         <div
@@ -545,7 +550,8 @@ export default function NavBar() {
                         {ctaLabel}
                       </MenuLink>
                     )}
-                  </nav>
+                    </nav>
+                  )}
                   <ThemeSwitch className="wd-theme-switch--desktop" />
                   {showLanguage && (
                     <LanguageSwitch className="wd-lang-switch--desktop" />

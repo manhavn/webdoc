@@ -279,7 +279,7 @@ fn cache_control(path: &str) -> &'static str {
     } else if is_hashed_asset(path) {
         "public, max-age=31536000, immutable"
     } else {
-        "public, max-age=3600"
+        "no-cache"
     }
 }
 

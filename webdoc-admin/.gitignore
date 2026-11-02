@@ -8,3 +8,4 @@ dist-ssr
 npm-debug.log*
 yarn-error.log*
 .DS_Store
+public

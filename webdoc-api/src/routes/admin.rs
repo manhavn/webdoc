@@ -6,8 +6,11 @@ use serde_json::{json, Value};
 
 use crate::auth::CurrentAdmin;
 use crate::error::{ApiError, ApiJson};
-use crate::models::{SiteSettings, SiteSettingsInput, UserDoc};
-use crate::routes::{load_layout, load_site, parse_object_id, save_layout, save_site};
+use crate::models::{CmsSettings, CmsSettingsInput, SiteSettings, SiteSettingsInput, UserDoc};
+use crate::routes::{
+    load_cms_settings, load_site, parse_object_id, reset_cms_settings, save_cms_settings,
+    save_site,
+};
 use crate::uploads;
 use crate::AppState;
 
@@ -64,23 +67,6 @@ pub async fn stats(
 }
 
 // ---------------------------------------------------------------------------
-// Layout and site settings
-// ---------------------------------------------------------------------------
-
-pub async fn get_layout(
-    State(state): State<AppState>,
-    _admin: CurrentAdmin,
-) -> Result<Json<Value>, ApiError> {
-    Ok(Json(load_layout(&state.db).await?))
-}
-
-pub async fn put_layout(
-    State(state): State<AppState>,
-    _admin: CurrentAdmin,
-    ApiJson(body): ApiJson<Value>,
-) -> Result<Json<Value>, ApiError> {
-    Ok(Json(save_layout(&state.db, &body).await?))
-}
 
 pub async fn get_site(
     State(state): State<AppState>,
@@ -115,6 +101,43 @@ pub async fn put_site(
         old_images.difference(&new_images).cloned().collect();
     uploads::delete_unreferenced_uploads(&state.db, &state.config.upload_dir, &removed).await;
     Ok(Json(settings))
+}
+
+pub async fn get_cms(
+    State(state): State<AppState>,
+    _admin: CurrentAdmin,
+) -> Result<Json<CmsSettings>, ApiError> {
+    Ok(Json(load_cms_settings(&state.db).await?))
+}
+
+fn cms_upload_files(settings: &CmsSettings) -> std::collections::HashSet<String> {
+    let mut files = std::collections::HashSet::new();
+    for value in [&settings.logo_url, &settings.favicon] {
+        files.extend(uploads::extract_upload_files(value));
+    }
+    files
+}
+
+pub async fn put_cms(
+    State(state): State<AppState>,
+    _admin: CurrentAdmin,
+    ApiJson(input): ApiJson<CmsSettingsInput>,
+) -> Result<Json<CmsSettings>, ApiError> {
+    let old_settings = load_cms_settings(&state.db).await?;
+    let old_images = cms_upload_files(&old_settings);
+    let settings = save_cms_settings(&state.db, input).await?;
+    let new_images = cms_upload_files(&settings);
+    let removed: std::collections::HashSet<String> =
+        old_images.difference(&new_images).cloned().collect();
+    uploads::delete_unreferenced_uploads(&state.db, &state.config.upload_dir, &removed).await;
+    Ok(Json(settings))
+}
+
+pub async fn reset_cms(
+    State(state): State<AppState>,
+    _admin: CurrentAdmin,
+) -> Result<Json<CmsSettings>, ApiError> {
+    Ok(Json(reset_cms_settings(&state.db).await?))
 }
 
 // ---------------------------------------------------------------------------

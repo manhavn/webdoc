@@ -1,13 +1,12 @@
 use axum::extract::State;
 use axum::Json;
-use futures_util::TryStreamExt;
 use mongodb::bson::{doc, DateTime, Document};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::error::{ApiError, ApiJson};
-use crate::models::SiteSettings;
-use crate::routes::{load_layout, load_site};
+use crate::models::{CmsSettings, SiteSettings};
+use crate::routes::{load_cms_settings, load_site};
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -24,39 +23,12 @@ pub async fn health() -> Json<Value> {
     Json(json!({ "status": "ok" }))
 }
 
-pub async fn journals(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
-    let docs = state
-        .db
-        .collection::<Document>("journals")
-        .find(doc! {})
-        .sort(doc! { "order": 1, "name": 1 })
-        .await?
-        .try_collect::<Vec<_>>()
-        .await?;
-
-    let items = docs
-        .into_iter()
-        .map(|document| {
-            json!({
-                "id": document.get_object_id("_id").map(|id| id.to_hex()).unwrap_or_default(),
-                "name": document.get_str("name").unwrap_or_default(),
-                "org": document.get_str("org").unwrap_or_default(),
-                "logo": document.get_str("logo").unwrap_or_default(),
-                "url": document.get_str("url").unwrap_or_default(),
-                "order": document.get("order").map(crate::routes::bson_to_i32).unwrap_or_default(),
-            })
-        })
-        .collect::<Vec<_>>();
-
-    Ok(Json(Value::Array(items)))
-}
-
-pub async fn layout(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
-    Ok(Json(load_layout(&state.db).await?))
-}
-
 pub async fn site(State(state): State<AppState>) -> Result<Json<SiteSettings>, ApiError> {
     Ok(Json(load_site(&state.db).await?))
+}
+
+pub async fn cms_settings(State(state): State<AppState>) -> Result<Json<CmsSettings>, ApiError> {
+    Ok(Json(load_cms_settings(&state.db).await?))
 }
 
 pub async fn contact(

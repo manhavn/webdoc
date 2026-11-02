@@ -11,14 +11,11 @@ use crate::bson_json::json_to_bson;
 use crate::config::Config;
 use crate::docs;
 use crate::models::{
-    i18n_messages_document, normalize_layout, valid_locale_code, DocNode, I18nDoc, SiteSettings,
-    UserDoc,
+    i18n_messages_document, valid_locale_code, DocNode, I18nDoc, SiteSettings, UserDoc,
 };
 
-const LAYOUT_JSON: &str = include_str!("seed_data/layout.json");
 const SITE_JSON: &str = include_str!("seed_data/site.json");
 const APPEARANCE_DEMO_JSON: &str = include_str!("seed_data/appearance_demo.json");
-const JOURNALS_JSON: &str = include_str!("seed_data/journals.json");
 const DOCS_JSON: &str = include_str!("seed_data/docs.json");
 const I18N_JSON: &str = include_str!("seed_data/i18n.json");
 
@@ -34,8 +31,6 @@ pub async fn seed_core(db: &Database, config: &Config) -> Result<(), Box<dyn Err
 /// Opt-in demo content (`--seed`). Never overwrites existing collections.
 pub async fn seed_demo(db: &Database) -> Result<(), Box<dyn Error>> {
     let now = DateTime::now();
-    seed_journals(db).await?;
-    seed_layout(db).await?;
     seed_site(db).await?;
     seed_appearance(db).await?;
     seed_docs(db, now).await?;
@@ -63,41 +58,6 @@ async fn seed_admin(db: &Database, config: &Config, now: DateTime) -> Result<(),
     Ok(())
 }
 
-async fn seed_journals(db: &Database) -> Result<(), Box<dyn Error>> {
-    let journals = db.collection::<Document>("journals");
-    if journals.count_documents(doc! {}).await? > 0 {
-        return Ok(());
-    }
-
-    let items: Vec<Value> = serde_json::from_str(JOURNALS_JSON)?;
-    let mut docs = Vec::with_capacity(items.len());
-    for (index, item) in items.iter().enumerate() {
-        let mut document = Document::new();
-        document.insert(
-            "name",
-            item.get("name").and_then(Value::as_str).unwrap_or_default(),
-        );
-        document.insert(
-            "org",
-            item.get("org").and_then(Value::as_str).unwrap_or_default(),
-        );
-        document.insert(
-            "logo",
-            item.get("logo").and_then(Value::as_str).unwrap_or_default(),
-        );
-        document.insert(
-            "url",
-            item.get("url").and_then(Value::as_str).unwrap_or_default(),
-        );
-        document.insert("order", Bson::Int32((index as i32) + 1));
-        docs.push(document);
-    }
-
-    let count = docs.len();
-    journals.insert_many(docs).await?;
-    tracing::info!(count, "Seeded journals");
-    Ok(())
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -299,22 +259,6 @@ async fn seed_i18n(db: &Database, now: DateTime) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn seed_layout(db: &Database) -> Result<(), Box<dyn Error>> {
-    let layout = db.collection::<Document>("layout");
-    if layout.count_documents(doc! {}).await? > 0 {
-        return Ok(());
-    }
-
-    let raw: Value = serde_json::from_str(LAYOUT_JSON)?;
-    let normalized = normalize_layout(&raw).map_err(|err| err.to_string())?;
-    let Bson::Document(mut document) = json_to_bson(normalized) else {
-        return Err("Layout seed is not an object".into());
-    };
-    document.insert("slug", "home");
-    layout.insert_one(document).await?;
-    tracing::info!("Seeded homepage layout");
-    Ok(())
-}
 
 async fn seed_site(db: &Database) -> Result<(), Box<dyn Error>> {
     let settings = db.collection::<Document>("settings");

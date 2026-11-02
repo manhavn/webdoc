@@ -1,6 +1,6 @@
 use mongodb::bson::{oid::ObjectId, Bson, DateTime, Document};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::Value;
 
 pub fn rfc3339(value: DateTime) -> Option<String> {
     value.try_to_rfc3339_string().ok()
@@ -238,6 +238,8 @@ pub struct SiteSettings {
     /// article instead of the group page.
     #[serde(default)]
     pub docs_skip_groups: bool,
+    #[serde(default)]
+    pub skip_homepage: bool,
 }
 
 impl Default for SiteSettings {
@@ -256,6 +258,7 @@ impl Default for SiteSettings {
             favicon: String::new(),
             og_image: String::new(),
             docs_skip_groups: false,
+            skip_homepage: false,
         }
     }
 }
@@ -276,6 +279,7 @@ pub struct SiteSettingsInput {
     pub favicon: Option<String>,
     pub og_image: Option<String>,
     pub docs_skip_groups: Option<bool>,
+    pub skip_homepage: Option<bool>,
 }
 
 impl SiteSettings {
@@ -318,6 +322,179 @@ impl SiteSettings {
         }
         if let Some(value) = input.docs_skip_groups {
             self.docs_skip_groups = value;
+        }
+        if let Some(value) = input.skip_homepage {
+            self.skip_homepage = value;
+        }
+    }
+}
+// ---------------------------------------------------------------------------
+// CMS appearance and enterprise branding settings
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CmsColors {
+    pub primary: String,
+    pub primary_dark: String,
+    pub accent_dark: String,
+    pub sidebar_bg: String,
+    pub sidebar_text: String,
+    pub topbar_bg: String,
+    pub topbar_text: String,
+    pub login_panel_bg: String,
+}
+
+impl Default for CmsColors {
+    fn default() -> Self {
+        Self {
+            primary: "#0f766e".to_string(),
+            primary_dark: "#115e59".to_string(),
+            accent_dark: "#2dd4bf".to_string(),
+            sidebar_bg: "#ffffff".to_string(),
+            sidebar_text: "#0f172a".to_string(),
+            topbar_bg: "#ffffff".to_string(),
+            topbar_text: "#0f172a".to_string(),
+            login_panel_bg: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CmsColorsInput {
+    pub primary: Option<String>,
+    pub primary_dark: Option<String>,
+    pub accent_dark: Option<String>,
+    pub sidebar_bg: Option<String>,
+    pub sidebar_text: Option<String>,
+    pub topbar_bg: Option<String>,
+    pub topbar_text: Option<String>,
+    pub login_panel_bg: Option<String>,
+}
+
+impl CmsColors {
+    pub fn apply(&mut self, input: CmsColorsInput) {
+        if let Some(v) = input.primary {
+            self.primary = v;
+        }
+        if let Some(v) = input.primary_dark {
+            self.primary_dark = v;
+        }
+        if let Some(v) = input.accent_dark {
+            self.accent_dark = v;
+        }
+        if let Some(v) = input.sidebar_bg {
+            self.sidebar_bg = v;
+        }
+        if let Some(v) = input.sidebar_text {
+            self.sidebar_text = v;
+        }
+        if let Some(v) = input.topbar_bg {
+            self.topbar_bg = v;
+        }
+        if let Some(v) = input.topbar_text {
+            self.topbar_text = v;
+        }
+        if let Some(v) = input.login_panel_bg {
+            self.login_panel_bg = v;
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CmsSettings {
+    pub brand_name: String,
+    pub brand_subname: String,
+    pub logo_url: String,
+    pub logo_char: String,
+    pub favicon: String,
+    pub login_title: String,
+    pub login_subtitle: String,
+    pub login_welcome: String,
+    pub login_description: String,
+    pub footer_text: String,
+    pub colors: CmsColors,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub login_panel_bg: String,
+}
+
+impl Default for CmsSettings {
+    fn default() -> Self {
+        Self {
+            brand_name: "WebDoc Demo".to_string(),
+            brand_subname: "Admin console".to_string(),
+            logo_url: String::new(),
+            logo_char: "O".to_string(),
+            favicon: String::new(),
+            login_title: "Sign in".to_string(),
+            login_subtitle: "Please sign in with an administrator account.".to_string(),
+            login_welcome: "Run your website with confidence".to_string(),
+            login_description: "Manage the content tree, homepage HTML and site settings in a single interface.".to_string(),
+            footer_text: String::new(),
+            colors: CmsColors::default(),
+            login_panel_bg: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CmsSettingsInput {
+    pub brand_name: Option<String>,
+    pub brand_subname: Option<String>,
+    pub logo_url: Option<String>,
+    pub logo_char: Option<String>,
+    pub favicon: Option<String>,
+    pub login_title: Option<String>,
+    pub login_subtitle: Option<String>,
+    pub login_welcome: Option<String>,
+    pub login_description: Option<String>,
+    pub footer_text: Option<String>,
+    pub colors: Option<CmsColorsInput>,
+    pub login_panel_bg: Option<String>,
+}
+
+impl CmsSettings {
+    pub fn apply(&mut self, input: CmsSettingsInput) {
+        if let Some(v) = input.brand_name {
+            self.brand_name = v;
+        }
+        if let Some(v) = input.brand_subname {
+            self.brand_subname = v;
+        }
+        if let Some(v) = input.logo_url {
+            self.logo_url = v;
+        }
+        if let Some(v) = input.logo_char {
+            self.logo_char = v;
+        }
+        if let Some(v) = input.favicon {
+            self.favicon = v;
+        }
+        if let Some(v) = input.login_title {
+            self.login_title = v;
+        }
+        if let Some(v) = input.login_subtitle {
+            self.login_subtitle = v;
+        }
+        if let Some(v) = input.login_welcome {
+            self.login_welcome = v;
+        }
+        if let Some(v) = input.login_description {
+            self.login_description = v;
+        }
+        if let Some(v) = input.footer_text {
+            self.footer_text = v;
+        }
+        if let Some(colors_input) = input.colors {
+            self.colors.apply(colors_input);
+            self.login_panel_bg = self.colors.login_panel_bg.clone();
+        }
+        if let Some(v) = input.login_panel_bg {
+            self.colors.login_panel_bg = v.clone();
+            self.login_panel_bg = v;
         }
     }
 }
@@ -500,64 +677,6 @@ pub fn i18n_messages_document(value: &Value, field: &str) -> Result<Document, St
     Ok(document)
 }
 
-// ---------------------------------------------------------------------------
-// Layout helpers
-// ---------------------------------------------------------------------------
-
-/// Validate and normalise a homepage layout document. Keeps `data` free-form so
-/// the admin CMS can edit any section without a schema migration.
-pub fn normalize_layout(input: &Value) -> Result<Value, String> {
-    let object = input
-        .as_object()
-        .ok_or_else(|| "Layout phải là một object.".to_string())?;
-    let raw_sections = object
-        .get("sections")
-        .ok_or_else(|| "Layout thiếu trường sections.".to_string())?
-        .as_array()
-        .ok_or_else(|| "Trường sections phải là một mảng.".to_string())?;
-
-    let mut sections: Vec<Value> = Vec::with_capacity(raw_sections.len());
-    for (index, item) in raw_sections.iter().enumerate() {
-        let item = item
-            .as_object()
-            .ok_or_else(|| format!("Phần tử sections thứ {} phải là một object.", index + 1))?;
-        let key = item
-            .get("key")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|key| !key.is_empty())
-            .ok_or_else(|| format!("Phần tử sections thứ {} thiếu key.", index + 1))?;
-        let enabled = item.get("enabled").and_then(Value::as_bool).unwrap_or(true);
-        let order = item
-            .get("order")
-            .and_then(Value::as_i64)
-            .unwrap_or((index as i64) + 1);
-        let data = item
-            .get("data")
-            .cloned()
-            .unwrap_or_else(|| Value::Object(Map::new()));
-        if !data.is_object() {
-            return Err(format!("data của section \"{key}\" phải là một object."));
-        }
-
-        let mut section = Map::new();
-        section.insert("key".to_string(), Value::String(key.to_string()));
-        section.insert("enabled".to_string(), Value::Bool(enabled));
-        section.insert("order".to_string(), Value::Number(order.into()));
-        section.insert("data".to_string(), data);
-        sections.push(Value::Object(section));
-    }
-
-    sections.sort_by_key(|section| {
-        section
-            .get("order")
-            .and_then(Value::as_i64)
-            .unwrap_or_default()
-    });
-
-    Ok(json!({ "slug": "home", "sections": sections }))
-}
-
 #[cfg(test)]
 mod i18n_tests {
     use super::{i18n_messages_document, valid_locale_code};
@@ -588,5 +707,53 @@ mod i18n_tests {
         assert!(i18n_messages_document(&json!({ "a": 1 }), "ui").is_err());
         assert!(i18n_messages_document(&json!({ "a": { "b": "c" } }), "ui").is_err());
         assert!(i18n_messages_document(&json!({ "a": null }), "admin").is_err());
+    }
+
+    #[test]
+    fn site_settings_deserializes_with_id_and_key() {
+        use mongodb::bson::doc;
+        let d = doc! {
+            "_id": mongodb::bson::oid::ObjectId::new(),
+            "key": "site",
+            "siteName": "My Custom Site"
+        };
+        let s: super::SiteSettings = mongodb::bson::from_document(d).unwrap();
+        assert_eq!(s.site_name, "My Custom Site");
+    }
+
+    #[test]
+    fn cms_settings_deserializes_with_id_and_key() {
+        use mongodb::bson::doc;
+        let d = doc! {
+            "_id": mongodb::bson::oid::ObjectId::new(),
+            "key": "cms",
+            "brandName": "My Custom CMS"
+        };
+        let s: super::CmsSettings = mongodb::bson::from_document(d).unwrap();
+        assert_eq!(s.brand_name, "My Custom CMS");
+    }
+
+    #[test]
+    fn cms_settings_supports_login_panel_bg() {
+        use mongodb::bson::doc;
+        let d = doc! {
+            "brandName": "My Custom CMS",
+            "colors": {
+                "loginPanelBg": "linear-gradient(150deg, #1e3a8a 0%, #3b82f6 100%)"
+            }
+        };
+        let mut s: super::CmsSettings = mongodb::bson::from_document(d).unwrap();
+        assert_eq!(
+            s.colors.login_panel_bg,
+            "linear-gradient(150deg, #1e3a8a 0%, #3b82f6 100%)"
+        );
+
+        let input = super::CmsSettingsInput {
+            login_panel_bg: Some("#112233".to_string()),
+            ..Default::default()
+        };
+        s.apply(input);
+        assert_eq!(s.colors.login_panel_bg, "#112233");
+        assert_eq!(s.login_panel_bg, "#112233");
     }
 }

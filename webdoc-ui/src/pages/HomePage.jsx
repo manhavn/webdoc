@@ -1,37 +1,15 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useContent } from '../lib/ContentContext'
 import { useI18n } from '../i18n/I18nContext'
 import { prepareArticle } from '../lib/content'
 import { useInternalLinks } from '../lib/internalLinks'
+import { findFirstDocPath } from '../lib/docs'
 import PageShell from '../components/PageShell'
-import {
-  Benefits,
-  Contact,
-  Demo,
-  Deploy,
-  Evolution,
-  Features,
-  Hero,
-  Journals,
-  Process,
-  Upgrade,
-} from '../components/HomeSections'
-
-const RENDERERS = {
-  hero: Hero,
-  benefits: Benefits,
-  evolution: Evolution,
-  upgrade: Upgrade,
-  journals: Journals,
-  features: Features,
-  demo: Demo,
-  process: Process,
-  deploy: Deploy,
-  contact: Contact,
-}
+import { formatHomeTitle } from '../lib/title'
 
 export default function HomePage() {
-  const { layout, appearance, loading } = useContent()
+  const { appearance, site, docsTree, loading } = useContent()
   const { lang, t } = useI18n()
   const onInternalClick = useInternalLinks()
 
@@ -40,6 +18,17 @@ export default function HomePage() {
     () => prepareArticle(home?.content || ''),
     [home?.content],
   )
+
+  const firstDocPath = useMemo(() => findFirstDocPath(docsTree), [docsTree])
+
+  useEffect(() => {
+    if (!loading && site?.skipHomepage && firstDocPath) return
+    document.title = formatHomeTitle(site.siteName, site.tagline)
+  }, [firstDocPath, loading, site.siteName, site.skipHomepage, site.tagline])
+
+  if (!loading && site?.skipHomepage && firstDocPath) {
+    return <Navigate to={firstDocPath} replace />
+  }
 
   // Do not render the bundled React fallback while the database appearance
   // document is still loading; otherwise a custom homepage flashes the old
@@ -72,21 +61,14 @@ export default function HomePage() {
     )
   }
 
-  const sections = layout.sections.filter((s) => s.enabled !== false)
-
   return (
     <PageShell home>
-      <div className="VPHome" data-v-9749c0f9="" data-v-9749bb45="">
-      {sections.map((section, index) => {
-        const Renderer = RENDERERS[section.key]
-        if (!Renderer) return null
-        return (
-          <div key={section.key}>
-            <Renderer data={section.data} />
-            {index < sections.length - 1 && <div className="section-divider" />}
-          </div>
-        )
-      })}
+      <div className="VPHome">
+        <div className="wd-container wd-home-html">
+          <article className="vp-doc">
+            <p>{t('doc.noContent') || ''}</p>
+          </article>
+        </div>
       </div>
     </PageShell>
   )

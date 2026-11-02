@@ -28,6 +28,7 @@
   "header": {
     "show": true,
     "sticky": true,
+    "showNavigation": true,
     "showSearch": true,
     "showLanguage": true,
     "background": "",

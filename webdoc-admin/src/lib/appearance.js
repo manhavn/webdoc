@@ -28,6 +28,7 @@ export const DEFAULT_APPEARANCE = {
   header: {
     show: true,
     sticky: true,
+    showNavigation: true,
     showSearch: true,
     showLanguage: true,
     background: '',
@@ -227,6 +228,7 @@ export function normalizeAppearance(value) {
     header: {
       show: asBool(header.show, defaults.header.show),
       sticky: asBool(header.sticky, defaults.header.sticky),
+      showNavigation: asBool(header.showNavigation, defaults.header.showNavigation),
       showSearch: asBool(header.showSearch, defaults.header.showSearch),
       showLanguage: asBool(header.showLanguage, defaults.header.showLanguage),
       background: asString(header.background, defaults.header.background),
@@ -329,6 +331,7 @@ export function buildAppearancePayload(value) {
     header: {
       show: normalized.header.show,
       sticky: normalized.header.sticky,
+      showNavigation: normalized.header.showNavigation,
       showSearch: normalized.header.showSearch,
       showLanguage: normalized.header.showLanguage,
       background: trim(normalized.header.background),

@@ -1075,6 +1075,11 @@ export default function Appearance() {
               onChange={(checked) => update('header.sticky', checked)}
             />
             <Toggle
+              labelKey="appearance.headerShowNavigation"
+              checked={form.header.showNavigation}
+              onChange={(checked) => update('header.showNavigation', checked)}
+            />
+            <Toggle
               labelKey="appearance.headerShowSearch"
               checked={form.header.showSearch}
               onChange={(checked) => update('header.showSearch', checked)}

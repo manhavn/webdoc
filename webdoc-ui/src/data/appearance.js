@@ -28,6 +28,7 @@ export const defaultAppearance = {
   header: {
     show: true,
     sticky: true,
+    showNavigation: true,
     showSearch: true,
     showLanguage: true,
     background: '',
@@ -198,6 +199,11 @@ export function mergeAppearance(remote) {
     header: {
       show: readBoolean(source.header, 'show', headerDefaults.show),
       sticky: readBoolean(source.header, 'sticky', headerDefaults.sticky),
+      showNavigation: readBoolean(
+        source.header,
+        'showNavigation',
+        headerDefaults.showNavigation,
+      ),
       showSearch: readBoolean(
         source.header,
         'showSearch',

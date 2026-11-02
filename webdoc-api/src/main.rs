@@ -153,11 +153,9 @@ fn build_app(state: AppState, config: &Config) -> Router {
     let cache = state.cache.clone();
     let public_routes = Router::new()
         .route("/health", get(routes::public::health))
-        .route("/journals", get(routes::public::journals))
-        .route("/partners", get(routes::public::journals))
-        .route("/settings/layout", get(routes::public::layout))
         .route("/settings/site", get(routes::public::site))
         .route("/settings/appearance", get(routes::appearance::public_get))
+        .route("/settings/cms", get(routes::public::cms_settings))
         .route("/i18n", get(routes::i18n::config))
         .route("/i18n/{code}", get(routes::i18n::messages))
         .route("/docs/tree", get(routes::docs::tree))
@@ -168,10 +166,6 @@ fn build_app(state: AppState, config: &Config) -> Router {
 
     let admin_routes = Router::new()
         .route("/stats", get(routes::admin::stats))
-        .route(
-            "/layout",
-            get(routes::admin::get_layout).put(routes::admin::put_layout),
-        )
         .route(
             "/site",
             get(routes::admin::get_site).put(routes::admin::put_site),
@@ -184,6 +178,11 @@ fn build_app(state: AppState, config: &Config) -> Router {
             "/appearance/homepage/reset",
             post(routes::appearance::admin_reset_homepage),
         )
+        .route(
+            "/cms",
+            get(routes::admin::get_cms).put(routes::admin::put_cms),
+        )
+        .route("/cms/reset", post(routes::admin::reset_cms))
         .route(
             "/docs",
             get(routes::docs::admin_list).post(routes::docs::admin_create),

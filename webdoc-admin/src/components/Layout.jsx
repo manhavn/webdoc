@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../i18n/I18nContext';
+import { useCms } from '../context/CmsContext';
 import Icon from './Icons';
 import LangSwitch from './LangSwitch';
 import ThemeSwitch from './ThemeSwitch';
@@ -12,6 +13,7 @@ const NAV_ITEMS = [
   { labelKey: 'nav.docs', to: '/docs', icon: 'docs' },
   { labelKey: 'nav.site', to: '/site', icon: 'settings' },
   { labelKey: 'nav.appearance', to: '/appearance', icon: 'appearance' },
+  { labelKey: 'nav.cmsSettings', to: '/cms-settings', icon: 'settings' },
   { labelKey: 'nav.homepage', to: '/homepage', icon: 'dashboard' },
   { labelKey: 'nav.languages', to: '/languages', icon: 'globe' },
   { labelKey: 'nav.backup', to: '/backup', icon: 'backup' },
@@ -22,6 +24,7 @@ const PAGE_TITLES = {
   '/docs': 'nav.docs',
   '/site': 'nav.site',
   '/appearance': 'nav.appearance',
+  '/cms-settings': 'nav.cmsSettings',
   '/homepage': 'nav.homepage',
   '/languages': 'nav.languages',
   '/backup': 'nav.backup',
@@ -34,6 +37,7 @@ function pageTitleKey(pathname) {
 export default function Layout() {
   const { user, logout } = useAuth();
   const { t, lang } = useI18n();
+  const { cms } = useCms();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,7 +49,7 @@ export default function Layout() {
   useEffect(() => {
     setSidebarOpen(false);
     setMenuOpen(false);
-    document.title = `${t(titleKey)} — ${t('brand.name')}`;
+    document.title = `${t(titleKey)} — ${cms.brandName || t('brand.name')}`;
   }, [location.pathname, lang, t, titleKey]);
 
   useEffect(() => {
@@ -72,10 +76,18 @@ export default function Layout() {
     <div className="app-shell">
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="brand">
-          <span className="brand-mark">O</span>
+          {cms.logoUrl ? (
+            <img
+              src={cms.logoUrl}
+              alt={cms.brandName || t('brand.name')}
+              className="brand-logo-img"
+            />
+          ) : (
+            <span className="brand-mark">{cms.logoChar || 'O'}</span>
+          )}
           <span className="brand-text">
-            <strong>{t('brand.name')}</strong>
-            <small>{t('brand.admin')}</small>
+            <strong>{cms.brandName || t('brand.name')}</strong>
+            <small>{cms.brandSubname || t('brand.admin')}</small>
           </span>
         </div>
 
@@ -104,7 +116,7 @@ export default function Layout() {
             <Icon name="logout" />
             <span>{t('nav.logout')}</span>
           </button>
-          <p className="sidebar-note">{t('brand.name')} v1.0.0</p>
+          <p className="sidebar-note">{cms.footerText || `${cms.brandName || t('brand.name')} v1.0.1`}</p>
         </div>
       </aside>
 

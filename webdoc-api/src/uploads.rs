@@ -155,7 +155,7 @@ async fn referenced_upload_files(db: &mongodb::Database) -> std::collections::Ha
     use mongodb::bson::{doc, Document};
 
     let mut referenced = std::collections::HashSet::new();
-    for collection in ["docs", "pages", "journals", "layout", "settings"] {
+    for collection in ["docs", "settings"] {
         let mut cursor = match db.collection::<Document>(collection).find(doc! {}).await {
             Ok(cursor) => cursor,
             Err(error) => {

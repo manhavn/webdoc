@@ -1,9 +1,18 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useContent } from '../lib/ContentContext'
 import { useI18n } from '../i18n/I18nContext'
 import PageShell from '../components/PageShell'
+import { formatDocumentTitle } from '../lib/title'
 
 export default function NotFound() {
   const { t } = useI18n()
+  const { site } = useContent()
+
+  useEffect(() => {
+    document.title = formatDocumentTitle(t('notFound.title') || 'Page not found', site.siteName)
+  }, [site.siteName, t])
+
 
   return (
     <PageShell>
