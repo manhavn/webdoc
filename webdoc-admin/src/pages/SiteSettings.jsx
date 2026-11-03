@@ -89,6 +89,7 @@ const EMPTY_SITE = {
   ogImage: '',
   docsSkipGroups: false,
   skipHomepage: false,
+  docsAccordion: false,
 };
 
 function ImageField({ field, value, onChange }) {
@@ -188,6 +189,7 @@ export default function SiteSettings() {
         ogImage: data?.ogImage || '',
         docsSkipGroups: Boolean(data?.docsSkipGroups),
         skipHomepage: Boolean(data?.skipHomepage),
+        docsAccordion: Boolean(data?.docsAccordion),
       });
     } catch (err) {
       setError(err.message || t('site.error'));
@@ -231,6 +233,7 @@ export default function SiteSettings() {
         ogImage: form.ogImage.trim(),
         docsSkipGroups: Boolean(form.docsSkipGroups),
         skipHomepage: Boolean(form.skipHomepage),
+        docsAccordion: Boolean(form.docsAccordion),
       };
       await api.updateSite(payload);
       await refreshCms();
@@ -360,6 +363,20 @@ export default function SiteSettings() {
           <span className="toggle-text">
             <strong>{t('site.skipHomepage')}</strong>
             <small>{t('site.skipHomepageHint')}</small>
+          </span>
+        </label>
+        <label className="toggle-field">
+          <span className="switch">
+            <input
+              type="checkbox"
+              checked={form.docsAccordion}
+              onChange={(event) => update('docsAccordion', event.target.checked)}
+            />
+            <span className="switch-track" aria-hidden="true" />
+          </span>
+          <span className="toggle-text">
+            <strong>{t('site.docsAccordion')}</strong>
+            <small>{t('site.docsAccordionHint')}</small>
           </span>
         </label>
       </section>

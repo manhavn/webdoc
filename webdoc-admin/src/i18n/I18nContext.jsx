@@ -134,6 +134,8 @@ const BUILTIN_MESSAGES = {
     'cms.previewDesc': 'Preview of the sidebar and topbar with your chosen logo and colors.',
     'site.skipHomepage': 'Bypass homepage (direct to documentation)',
     'site.skipHomepageHint': 'When enabled, visiting the website will automatically skip the homepage and navigate directly to the first document in the content tree.',
+    'site.docsAccordion': 'Auto-collapse peer sections on link click',
+    'site.docsAccordionHint': 'When clicking a major section link, automatically collapse other peer sections. Clicking expand arrows keeps multiple sections open.',
     'appearance.headerShowNavigation': 'Show navigation',
     'docs.show': 'Show on website',
     'docs.showAria': 'Show {title} on website',

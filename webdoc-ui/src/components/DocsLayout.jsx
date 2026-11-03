@@ -23,6 +23,57 @@ function containsActive(items, activePath) {
     return item.items ? containsActive(item.items, activePath) : false
   })
 }
+function findItemBranch(items, targetItem, level = 0) {
+  for (const item of items) {
+    if (
+      item === targetItem ||
+      (item.link && targetItem.link && item.link === targetItem.link)
+    ) {
+      return [{ item, level, siblings: items }]
+    }
+    if (item.items && item.items.length) {
+      const sub = findItemBranch(item.items, targetItem, level + 1)
+      if (sub) {
+        return [{ item, level, siblings: items }, ...sub]
+      }
+    }
+  }
+  return null
+}
+
+function findPathToActive(items, activePath, level = 0) {
+  for (const item of items) {
+    if (linkActive(item, activePath)) {
+      return [{ item, level, siblings: items }]
+    }
+    if (item.items && item.items.length) {
+      if (containsActive(item.items, activePath)) {
+        const sub = findPathToActive(item.items, activePath, level + 1)
+        if (sub) {
+          return [{ item, level, siblings: items }, ...sub]
+        }
+        return [{ item, level, siblings: items }]
+      }
+    }
+  }
+  return null
+}
+
+function closeItemAndDescendants(item, level, next) {
+  if (!item.items || !item.items.length) return false
+  let changed = false
+  const k = nodeKey(item, level)
+  if (next[k] !== false) {
+    next[k] = false
+    changed = true
+  }
+  item.items.forEach((child) => {
+    if (closeItemAndDescendants(child, level + 1, next)) {
+      changed = true
+    }
+  })
+  return changed
+}
 
 function SidebarItem({
   item,
@@ -33,6 +84,8 @@ function SidebarItem({
   animatedGroups,
   toggle,
   onNavigate,
+  onLinkClick,
+  onArticleClick,
 }) {
   const { t } = useI18n()
   const hasItems = Boolean(item.items && item.items.length)
@@ -66,8 +119,14 @@ function SidebarItem({
             className="VPLink link link"
             data-v-5e427630=""
             to={item.link}
-            onClick={onNavigate}
-          >
+            onClick={() => {
+              onNavigate?.()
+              if (hasItems) {
+                onLinkClick?.(item, level)
+              } else {
+                onArticleClick?.()
+              }
+            }}>
             {textTag === 'h2' ? (
               <h2 className="text" data-v-5e427630="">
                 {item.text}
@@ -82,7 +141,11 @@ function SidebarItem({
           <span
             className="VPLink link"
             data-v-5e427630=""
-            onClick={() => hasItems && toggle(key, !groupOpen)}
+            onClick={() => {
+              if (hasItems) {
+                onLinkClick?.(item, level, !groupOpen)
+              }
+            }}
           >
             <p className="text" data-v-5e427630="">
               {item.text}
@@ -105,7 +168,7 @@ function SidebarItem({
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
-                toggle(key)
+                toggle(key, !groupOpen)
               }
             }}
           >
@@ -136,6 +199,8 @@ function SidebarItem({
                 animatedGroups={animatedGroups}
                 toggle={toggle}
                 onNavigate={onNavigate}
+                onLinkClick={onLinkClick}
+                onArticleClick={onArticleClick}
               />
             ))}
           </div>
@@ -164,6 +229,7 @@ function Sidebar({ activePath, activeCategory, open, onNavigate }) {
   const { docsTree, site } = useContent()
   const { t } = useI18n()
   const skipGroups = Boolean(site.docsSkipGroups)
+  const autoCollapsePeers = Boolean(site.docsAccordion)
   const groups = useMemo(
     () =>
       [...docsTree]
@@ -180,17 +246,27 @@ function Sidebar({ activePath, activeCategory, open, onNavigate }) {
   // existing slide animation.
   const [animatedGroups, setAnimatedGroups] = useState({})
 
-  // Open the branch that contains the current page, but never force groups
-  // closed: closing a group during navigation animates in the opposite
-  // direction to the group being opened and reads as a flicker.
+  const isArticleClickRef = useRef(false)
+  const handleArticleClick = () => {
+    isArticleClickRef.current = true
+  }
+
+  // Open the branch that contains the current page. If autoCollapsePeers is enabled,
+  // close peer parent sections at all levels (cấp 1, 2, 3...) when navigating via
+  // Previous / Next page or direct links, but keep them open when clicking an article directly.
   useEffect(() => {
+    const isArticleClick = isArticleClickRef.current
+    isArticleClickRef.current = false
+
     setOpenGroups((prev) => {
       const next = { ...prev }
       let changed = false
+
       const open = (key) => {
-        if (next[key]) return
-        next[key] = true
-        changed = true
+        if (!next[key]) {
+          next[key] = true
+          changed = true
+        }
       }
       const walk = (items, level) => {
         items.forEach((item) => {
@@ -205,13 +281,68 @@ function Sidebar({ activePath, activeCategory, open, onNavigate }) {
         })
       }
       walk(groups, 0)
+
+      if (autoCollapsePeers && !isArticleClick) {
+        const branch = findPathToActive(groups, activePath)
+        if (branch) {
+          for (const step of branch) {
+            for (const sib of step.siblings) {
+              if (sib !== step.item && sib.items && sib.items.length) {
+                if (closeItemAndDescendants(sib, step.level, next)) {
+                  changed = true
+                }
+              }
+            }
+          }
+        }
+      }
+
       return changed ? next : prev
     })
-  }, [activePath, groups])
+  }, [activePath, groups, autoCollapsePeers])
 
   const toggle = (key, open) => {
     setAnimatedGroups((prev) => (prev[key] ? prev : { ...prev, [key]: true }))
     setOpenGroups((prev) => ({ ...prev, [key]: open }))
+  }
+
+  const handleLinkClick = (item, level, requestedOpen) => {
+    if (!autoCollapsePeers) return
+    if (!item.items || !item.items.length) return
+
+    const branch = findItemBranch(groups, item)
+    if (!branch) return
+
+    const willBeOpen = requestedOpen !== undefined ? requestedOpen : true
+    const changedKeys = {}
+
+    setOpenGroups((prev) => {
+      const next = { ...prev }
+      if (willBeOpen) {
+        for (const step of branch) {
+          const k = nodeKey(step.item, step.level)
+          if (next[k] !== true) {
+            next[k] = true
+            changedKeys[k] = true
+          }
+        }
+        for (const step of branch) {
+          for (const sib of step.siblings) {
+            if (sib !== step.item && sib.items && sib.items.length) {
+              const k = nodeKey(sib, step.level)
+              changedKeys[k] = true
+              closeItemAndDescendants(sib, step.level, next)
+            }
+          }
+        }
+      } else {
+        closeItemAndDescendants(item, level, next)
+        changedKeys[nodeKey(item, level)] = true
+      }
+      return next
+    })
+
+    setAnimatedGroups((prev) => ({ ...prev, ...changedKeys }))
   }
 
   return (
@@ -250,6 +381,8 @@ function Sidebar({ activePath, activeCategory, open, onNavigate }) {
               animatedGroups={animatedGroups}
               toggle={toggle}
               onNavigate={onNavigate}
+              onLinkClick={handleLinkClick}
+              onArticleClick={handleArticleClick}
             />
           </div>
         ))}

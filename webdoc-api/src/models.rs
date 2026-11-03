@@ -240,6 +240,8 @@ pub struct SiteSettings {
     pub docs_skip_groups: bool,
     #[serde(default)]
     pub skip_homepage: bool,
+    #[serde(default)]
+    pub docs_accordion: bool,
 }
 
 impl Default for SiteSettings {
@@ -259,6 +261,7 @@ impl Default for SiteSettings {
             og_image: String::new(),
             docs_skip_groups: false,
             skip_homepage: false,
+            docs_accordion: false,
         }
     }
 }
@@ -280,6 +283,7 @@ pub struct SiteSettingsInput {
     pub og_image: Option<String>,
     pub docs_skip_groups: Option<bool>,
     pub skip_homepage: Option<bool>,
+    pub docs_accordion: Option<bool>,
 }
 
 impl SiteSettings {
@@ -325,6 +329,9 @@ impl SiteSettings {
         }
         if let Some(value) = input.skip_homepage {
             self.skip_homepage = value;
+        }
+        if let Some(value) = input.docs_accordion {
+            self.docs_accordion = value;
         }
     }
 }

@@ -12,5 +12,6 @@
   "favicon": "",
   "ogImage": "",
   "docsSkipGroups": false,
-  "skipHomepage": false
+  "skipHomepage": false,
+  "docsAccordion": false
 }

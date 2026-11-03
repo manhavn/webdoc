@@ -15,5 +15,6 @@ export const defaultSite = {
   ogImage: '',
   docsSkipGroups: false,
   skipHomepage: false,
+  docsAccordion: false,
 }
 

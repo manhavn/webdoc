@@ -1,6 +1,15 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { buildTree, flattenTree, normalizeNode, ROOT_KEY, toId } from '../lib/docsTree';
+import {
+  loadStoredCollapseTree,
+  saveStoredCollapseTree,
+  getNodeKey,
+  getAncestorKeys,
+  setNodeCollapsed,
+  collectCollapsedIds,
+  buildCollapseAllTree,
+} from '../lib/collapseTree';
 import { slugify } from '../lib/utils';
 import { useI18n } from '../i18n/I18nContext';
 import Icon from '../components/Icons';
@@ -224,10 +233,9 @@ export default function Docs() {
   const [nodes, setNodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [expanded, setExpanded] = useState(() => new Set());
+  const [collapseTree, setCollapseTree] = useState(() => loadStoredCollapseTree());
   const [movingId, setMovingId] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
-  const initExpanded = useRef(false);
 
   const [editor, setEditor] = useState(null);
   const [original, setOriginal] = useState(null);
@@ -246,6 +254,14 @@ export default function Docs() {
   const tree = useMemo(() => buildTree(nodes), [nodes]);
   const roots = tree.get(ROOT_KEY) || [];
   const flat = useMemo(() => flattenTree(tree), [tree]);
+  const collapsedIds = useMemo(
+    () => collectCollapsedIds(collapseTree, nodes),
+    [collapseTree, nodes]
+  );
+  const expanded = useMemo(
+    () => new Set(nodes.filter((n) => !collapsedIds.has(n.id)).map((n) => n.id)),
+    [nodes, collapsedIds]
+  );
 
   const groupCount = nodes.filter((node) => node.group).length;
   const pageCount = nodes.length - groupCount;
@@ -262,10 +278,6 @@ export default function Docs() {
       const data = await api.listDocs();
       const list = (Array.isArray(data) ? data : data?.items || []).map(normalizeNode);
       setNodes(list);
-      if (!initExpanded.current) {
-        initExpanded.current = true;
-        setExpanded(new Set(list.map((node) => node.id)));
-      }
     } catch (err) {
       setError(err.message || t('docs.error'));
     } finally {
@@ -278,22 +290,51 @@ export default function Docs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function updateCollapseTree(nextTree) {
+    setCollapseTree(nextTree);
+    saveStoredCollapseTree(nextTree);
+  }
+
   function toggleNode(id) {
-    setExpanded((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const node = nodes.find((n) => n.id === id);
+    if (!node) return;
+    const isCurrentlyCollapsed = collapsedIds.has(id);
+    const ancestorKeys = getAncestorKeys(id, nodes);
+    const nodeKey = getNodeKey(node);
+    const nextTree = setNodeCollapsed(
+      collapseTree,
+      ancestorKeys,
+      nodeKey,
+      !isCurrentlyCollapsed
+    );
+    updateCollapseTree(nextTree);
   }
 
   function expandAll() {
-    setExpanded(new Set(nodes.map((node) => node.id)));
+    updateCollapseTree({});
   }
 
   function collapseAll() {
-    setExpanded(new Set());
+    updateCollapseTree(buildCollapseAllTree(nodes));
   }
+
+  function expandNode(id) {
+    if (!id) return;
+    const node = nodes.find((n) => n.id === id);
+    if (!node) return;
+    if (collapsedIds.has(id)) {
+      const ancestorKeys = getAncestorKeys(id, nodes);
+      const nodeKey = getNodeKey(node);
+      const nextTree = setNodeCollapsed(
+        collapseTree,
+        ancestorKeys,
+        nodeKey,
+        false
+      );
+      updateCollapseTree(nextTree);
+    }
+  }
+
 
   function nextOrder(parentId) {
     const siblings = nodes.filter((node) => (node.parentId || null) === (parentId || null));
@@ -438,18 +479,18 @@ export default function Docs() {
         const saved = await api.updateDoc(original.id, payload);
         const savedId = toId(saved?.id ?? saved?._id) || original.id;
         if (payload.parentId) {
-          setExpanded((current) => new Set(current).add(payload.parentId));
+          expandNode(payload.parentId);
         }
-        setExpanded((current) => new Set(current).add(savedId));
+        expandNode(savedId);
         toast.success(t('docs.updated'));
       } else {
         const saved = await api.createDoc(payload);
         const savedId = toId(saved?.id ?? saved?._id);
         if (payload.parentId) {
-          setExpanded((current) => new Set(current).add(payload.parentId));
+          expandNode(payload.parentId);
         }
         if (savedId) {
-          setExpanded((current) => new Set(current).add(savedId));
+          expandNode(savedId);
         }
         toast.success(payload.group ? t('docs.groupCreated') : t('docs.pageCreated'));
       }
@@ -529,11 +570,6 @@ export default function Docs() {
     try {
       await api.deleteDoc(deleting.id);
       toast.success(t('docs.deleted'));
-      setExpanded((current) => {
-        const next = new Set(current);
-        next.delete(deleting.id);
-        return next;
-      });
       setDeleting(null);
       await load();
     } catch (err) {
