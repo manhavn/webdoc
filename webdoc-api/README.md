@@ -178,7 +178,8 @@ Content-Type: application/json
 ```
 
 Returns `{"token": "...", "user": {"id", "username", "role"}}`. The JWT is
-HS256 with claims `sub`, `username`, `role`, `exp` and is valid for 24 hours.
+HS256 with claims `sub`, `username`, `role`, `exp` and is valid for 24 hours by default
+(configurable in CMS settings via `tokenDays`, e.g. 30, 365 days).
 Send it on admin requests as `Authorization: Bearer <token>`.
 
 `GET /api/auth/me` returns the current user. Missing or invalid tokens receive

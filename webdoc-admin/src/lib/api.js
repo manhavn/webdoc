@@ -50,8 +50,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
     throw new ApiError(translateCurrent('api.networkError'), 0);
   }
 
-  if (response.status === 401 && path !== '/auth/login') {
-    setToken(null);
+  if (response.status === 401 && path !== '/auth/login' && path !== '/auth/refresh') {
     window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
     throw new ApiError(translateCurrent('api.sessionExpired'), 401);
   }
@@ -110,6 +109,7 @@ export const api = {
   login: (username, password) =>
     request('/auth/login', { method: 'POST', body: { username, password } }),
   me: () => request('/auth/me'),
+  refreshToken: () => request('/auth/refresh', { method: 'POST' }),
 
   stats: () => request('/admin/stats'),
 
@@ -151,6 +151,12 @@ export const api = {
       method: 'POST',
       body: { currentPassword, newPassword },
     }),
+
+  resetUserSecret: () => request('/admin/reset-secret', { method: 'POST' }),
+  listUsers: () => request('/admin/users'),
+  createUser: (payload) => request('/admin/users', { method: 'POST', body: payload }),
+  updateUser: (id, payload) => request(`/admin/users/${id}`, { method: 'PUT', body: payload }),
+  deleteUser: (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
 
   getI18n: () => request('/i18n'),
   getI18nLocale: (code) => request(`/i18n/${encodeURIComponent(code)}`),

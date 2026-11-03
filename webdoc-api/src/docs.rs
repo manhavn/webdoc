@@ -338,6 +338,8 @@ mod tests {
             description: String::new(),
             content: String::new(),
             published: true,
+            owner_id: None,
+            user_access: Vec::new(),
             created_at: DateTime::now(),
             updated_at: DateTime::now(),
         }

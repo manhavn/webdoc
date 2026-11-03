@@ -11,6 +11,7 @@ export const DEFAULT_CMS_SETTINGS = {
     'Manage the content tree, homepage HTML and site settings in a single interface.',
   footerText: '',
   loginPanelBg: '',
+  tokenDays: 1,
   colors: {
     primary: '#0f766e',
     primaryDark: '#115e59',

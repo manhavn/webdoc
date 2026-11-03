@@ -23,7 +23,7 @@ use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode};
 use axum::middleware;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{any, get, post};
+use axum::routing::{any, get, post, put};
 use axum::Router;
 use clap::Parser;
 use mongodb::Database;
@@ -148,7 +148,8 @@ async fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
 fn build_app(state: AppState, config: &Config) -> Router {
     let auth_routes = Router::new()
         .route("/login", post(routes::auth::login))
-        .route("/me", get(routes::auth::me));
+        .route("/me", get(routes::auth::me))
+        .route("/refresh", post(routes::auth::refresh));
 
     let cache = state.cache.clone();
     let public_routes = Router::new()
@@ -211,7 +212,16 @@ fn build_app(state: AppState, config: &Config) -> Router {
             post(routes::backup::import)
                 .layer(DefaultBodyLimit::max(routes::backup::MAX_IMPORT_BODY_BYTES)),
         )
-        .route("/change-password", post(routes::admin::change_password));
+        .route("/change-password", post(routes::admin::change_password))
+        .route("/reset-secret", post(routes::admin::reset_user_secret))
+        .route(
+            "/users",
+            get(routes::admin::list_users).post(routes::admin::create_user),
+        )
+        .route(
+            "/users/{id}",
+            put(routes::admin::update_user).delete(routes::admin::delete_user),
+        );
 
     let cache = state.cache.clone();
     let admin_routes = admin_routes.layer(middleware::from_fn_with_state(

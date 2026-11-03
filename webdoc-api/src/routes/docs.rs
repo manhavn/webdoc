@@ -8,7 +8,9 @@ use serde_json::{json, Value};
 use crate::auth::CurrentAdmin;
 use crate::docs;
 use crate::error::{ApiError, ApiJson, ApiQuery};
-use crate::models::{DocCreateInput, DocDto, DocNode, DocPageDto, DocSummaryDto, DocUpdateInput};
+use crate::models::{
+    DocCreateInput, DocDto, DocNode, DocPageDto, DocSummaryDto, DocUpdateInput, UserDoc,
+};
 use crate::routes::parse_object_id;
 use crate::uploads;
 use crate::AppState;
@@ -18,6 +20,33 @@ use crate::AppState;
 pub struct DocPageQuery {
     #[serde(default)]
     pub path: Option<String>,
+}
+
+async fn is_inside_owned_group(
+    db: &mongodb::Database,
+    node: &DocNode,
+    user_id: Option<&ObjectId>,
+) -> Result<bool, ApiError> {
+    let Some(user_id) = user_id else {
+        return Ok(false);
+    };
+    let mut cursor = node.parent_id;
+    let mut guard = 0usize;
+    while let Some(pid) = cursor {
+        guard += 1;
+        if guard > 50 {
+            break;
+        }
+        if let Some(parent) = docs::find_by_id(db, pid).await? {
+            if parent.group && parent.owner_id == Some(*user_id) {
+                return Ok(true);
+            }
+            cursor = parent.parent_id;
+        } else {
+            break;
+        }
+    }
+    Ok(false)
 }
 
 // ---------------------------------------------------------------------------
@@ -118,8 +147,9 @@ async fn build_page(
 /// `GET /api/admin/docs` — every node (published or not) with full content.
 pub async fn admin_list(
     State(state): State<AppState>,
-    _admin: CurrentAdmin,
+    admin: CurrentAdmin,
 ) -> Result<Json<Vec<DocDto>>, ApiError> {
+    let current_user_id = ObjectId::parse_str(&admin.0.sub).ok();
     let nodes = state
         .db
         .collection::<DocNode>(docs::COLLECTION)
@@ -129,27 +159,107 @@ pub async fn admin_list(
         .try_collect::<Vec<_>>()
         .await?;
 
-    Ok(Json(nodes.into_iter().map(DocNode::into_dto).collect()))
+    let users = state
+        .db
+        .collection::<UserDoc>("users")
+        .find(doc! {})
+        .await?
+        .try_collect::<Vec<_>>()
+        .await
+        .unwrap_or_default();
+    let usernames = users
+        .into_iter()
+        .map(|u| (u.id, u.username))
+        .collect::<std::collections::HashMap<_, _>>();
+
+    let parent_map: std::collections::HashMap<ObjectId, (Option<ObjectId>, bool, Option<ObjectId>)> =
+        nodes.iter().map(|n| (n.id, (n.parent_id, n.group, n.owner_id))).collect();
+
+    let dtos = nodes
+        .into_iter()
+        .map(|node| {
+            let owner_username = node.owner_id.and_then(|oid| usernames.get(&oid).cloned());
+
+            let mut cursor = node.parent_id;
+            let mut is_inside_owned_group = false;
+            let mut guard = 0usize;
+            while let Some(pid) = cursor {
+                guard += 1;
+                if guard > 50 {
+                    break;
+                }
+                if let Some(&(parent_parent_id, is_parent_group, parent_owner_id)) = parent_map.get(&pid) {
+                    if is_parent_group
+                        && current_user_id.is_some()
+                        && parent_owner_id == current_user_id
+                    {
+                        is_inside_owned_group = true;
+                        break;
+                    }
+                    cursor = parent_parent_id;
+                } else {
+                    break;
+                }
+            }
+            node.into_admin_dto(
+                current_user_id.as_ref(),
+                is_inside_owned_group,
+                owner_username,
+            )
+        })
+        .collect();
+
+    Ok(Json(dtos))
 }
 
 /// `GET /api/admin/docs/:id` — one node with full content.
 pub async fn admin_get(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    _admin: CurrentAdmin,
+    admin: CurrentAdmin,
 ) -> Result<Json<DocDto>, ApiError> {
     let id = parse_object_id(&id)?;
     let node = docs::find_by_id(&state.db, id)
         .await?
         .ok_or_else(|| ApiError::not_found("Không tìm thấy tài liệu."))?;
-    Ok(Json(node.into_dto()))
+
+    let current_user_id = ObjectId::parse_str(&admin.0.sub).ok();
+
+    let is_inside_group = is_inside_owned_group(&state.db, &node, current_user_id.as_ref()).await?;
+
+    let owner_username = if let Some(oid) = node.owner_id {
+        state
+            .db
+            .collection::<UserDoc>("users")
+            .find_one(doc! { "_id": oid })
+            .await
+            .ok()
+            .flatten()
+            .map(|u| u.username)
+    } else {
+        None
+    };
+
+    let dto = node.into_admin_dto(
+        current_user_id.as_ref(),
+        is_inside_group,
+        owner_username,
+    );
+
+    if !dto.can_edit && !dto.group {
+        return Err(ApiError::forbidden(
+            "Bạn không có quyền xem hoặc chỉnh sửa bài viết này.",
+        ));
+    }
+
+    Ok(Json(dto))
 }
 
 /// `POST /api/admin/docs` — create a node. The path defaults to the parent
 /// path plus the slug; the slug defaults to the slugified title.
 pub async fn admin_create(
     State(state): State<AppState>,
-    _admin: CurrentAdmin,
+    admin: CurrentAdmin,
     ApiJson(input): ApiJson<DocCreateInput>,
 ) -> Result<Json<DocDto>, ApiError> {
     let title = input.title.trim();
@@ -195,13 +305,21 @@ pub async fn admin_create(
         None => docs::next_sibling_order(&state.db, parent.as_ref().map(|node| node.id)).await?,
     };
 
+    let current_user_id = ObjectId::parse_str(&admin.0.sub).ok();
+    let user_access = input
+        .user_access
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|s| ObjectId::parse_str(&s).ok())
+        .collect();
+
     let now = DateTime::now();
     let node = DocNode {
         id: ObjectId::new(),
         title: title.to_string(),
         slug,
         path,
-        parent_id: parent.map(|node| node.id),
+        parent_id: parent.as_ref().map(|node| node.id),
         group: input.group.unwrap_or(false),
         order,
         description: input
@@ -210,6 +328,8 @@ pub async fn admin_create(
             .unwrap_or_default(),
         content: input.content.unwrap_or_default(),
         published: input.published.unwrap_or(true),
+        owner_id: current_user_id,
+        user_access,
         created_at: now,
         updated_at: now,
     };
@@ -220,7 +340,14 @@ pub async fn admin_create(
         .insert_one(&node)
         .await?;
 
-    Ok(Json(node.into_dto()))
+    let is_inside_group = is_inside_owned_group(&state.db, &node, current_user_id.as_ref()).await?;
+    let owner_username = Some(admin.0.username.clone());
+
+    Ok(Json(node.into_admin_dto(
+        current_user_id.as_ref(),
+        is_inside_group,
+        owner_username,
+    )))
 }
 
 /// `PUT /api/admin/docs/:id` — partial update. Moving a node (title, slug,
@@ -228,7 +355,7 @@ pub async fn admin_create(
 pub async fn admin_update(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    _admin: CurrentAdmin,
+    admin: CurrentAdmin,
     ApiJson(input): ApiJson<DocUpdateInput>,
 ) -> Result<Json<DocDto>, ApiError> {
     let object_id = parse_object_id(&id)?;
@@ -238,6 +365,79 @@ pub async fn admin_update(
     let old_path = node.path.clone();
     let old_images = uploads::extract_upload_files(&node.content);
 
+
+    let current_user_id = ObjectId::parse_str(&admin.0.sub).ok();
+
+    let is_inside_group = is_inside_owned_group(&state.db, &node, current_user_id.as_ref()).await?;
+    let in_user_access = current_user_id
+        .as_ref()
+        .map(|uid| node.user_access.contains(uid))
+        .unwrap_or(false);
+    let is_owner = match (&node.owner_id, current_user_id.as_ref()) {
+        (Some(owner), Some(cur)) => owner == cur,
+        (None, _) => true,
+        _ => false,
+    };
+
+    if node.owner_id.is_none() {
+        node.owner_id = current_user_id;
+    }
+
+
+    let is_content_or_meta_edit = input.title.is_some()
+        || input.slug.is_some()
+        || input.description.is_some()
+        || input.content.is_some()
+        || input.path.is_some()
+        || input.parent_id.is_some()
+        || input.group.is_some();
+
+    if is_content_or_meta_edit {
+        if node.group {
+            if !is_owner {
+                return Err(ApiError::forbidden(
+                    "Chỉ chủ sở hữu nhóm mới có quyền chỉnh sửa nhóm này.",
+                ));
+            }
+        } else {
+            let can_edit_page = is_owner || in_user_access;
+            if !can_edit_page {
+                return Err(ApiError::forbidden(
+                    "Bạn không có quyền chỉnh sửa nội dung bài viết này.",
+                ));
+            }
+        }
+    }
+
+    if let Some(published) = input.published {
+        if published != node.published {
+            if node.group {
+                let can_toggle_group = is_owner || is_inside_group;
+                if !can_toggle_group {
+                    return Err(ApiError::forbidden(
+                        "Chỉ chủ sở hữu nhóm hoặc chủ nhóm cha mới có quyền ẩn/hiện nhóm này.",
+                    ));
+                }
+            } else {
+                let can_toggle = is_owner || in_user_access || is_inside_group;
+                if !can_toggle {
+                    return Err(ApiError::forbidden(
+                        "Bạn không có quyền ẩn/hiện bài viết này.",
+                    ));
+                }
+            }
+        }
+    }
+
+    if is_owner {
+        if let Some(user_access_raw) = input.user_access {
+            let parsed: Vec<ObjectId> = user_access_raw
+                .into_iter()
+                .filter_map(|s| ObjectId::parse_str(&s).ok())
+                .collect();
+            node.user_access = parsed;
+        }
+    }
     let mut title_changed = false;
     let mut slug_changed = false;
     let mut parent_changed = false;
@@ -400,20 +600,51 @@ pub async fn admin_update(
         old_images.difference(&new_images).cloned().collect();
     uploads::delete_unreferenced_uploads(&state.db, &state.config.upload_dir, &removed).await;
 
-    Ok(Json(node.into_dto()))
+    let owner_username = if let Some(oid) = node.owner_id {
+        state
+            .db
+            .collection::<UserDoc>("users")
+            .find_one(doc! { "_id": oid })
+            .await
+            .ok()
+            .flatten()
+            .map(|u| u.username)
+    } else {
+        None
+    };
+
+    Ok(Json(node.into_admin_dto(
+        current_user_id.as_ref(),
+        is_inside_group,
+        owner_username,
+    )))
 }
 
 /// `DELETE /api/admin/docs/:id` — remove the node and its whole subtree.
 pub async fn admin_delete(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    _admin: CurrentAdmin,
+    admin: CurrentAdmin,
 ) -> Result<Json<Value>, ApiError> {
     let id = parse_object_id(&id)?;
     let node = docs::find_by_id(&state.db, id)
         .await?
         .ok_or_else(|| ApiError::not_found("Không tìm thấy tài liệu."))?;
 
+    let current_user_id = ObjectId::parse_str(&admin.0.sub).ok();
+
+    let is_inside_group = is_inside_owned_group(&state.db, &node, current_user_id.as_ref()).await?;
+    let is_owner = match (&node.owner_id, current_user_id.as_ref()) {
+        (Some(owner), Some(cur)) => owner == cur,
+        (None, _) => true,
+        _ => false,
+    };
+    let can_delete = is_owner || is_inside_group;
+    if !can_delete {
+        return Err(ApiError::forbidden(
+            "Bạn không có quyền xóa tài liệu này.",
+        ));
+    }
     let mut ids = vec![node.id];
     let mut removed_images = uploads::extract_upload_files(&node.content);
     let descendants = docs::descendants(&state.db, &node.path).await?;

@@ -1,9 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useI18n } from '../i18n/I18nContext';
 import { useToast } from '../components/Toast';
 import Icon from '../components/Icons';
 import Modal from '../components/Modal';
+import {
+  readStoredAutosaveInterval,
+  writeStoredAutosaveInterval,
+  getNextAutosaveInterval,
+} from '../lib/autosave';
 
 const EMPTY_HOME = {
   slug: 'home',
@@ -33,6 +38,22 @@ export default function Homepage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [autosaveInterval, setAutosaveInterval] = useState(() => readStoredAutosaveInterval());
+  const [autosaving, setAutosaving] = useState(false);
+  const autosaveIntervalRef = useRef(autosaveInterval);
+  autosaveIntervalRef.current = autosaveInterval;
+  const autosaveTimerRef = useRef(null);
+  const lastSavedSnapshotRef = useRef('');
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const appearanceRef = useRef(appearance);
+  appearanceRef.current = appearance;
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  const savingRef = useRef(saving);
+  savingRef.current = saving;
+  const autosavingRef = useRef(autosaving);
+  autosavingRef.current = autosaving;
 
   async function load() {
     setLoading(true);
@@ -54,18 +75,147 @@ export default function Homepage() {
   }, []);
 
   function openEditor() {
-    setDraft({ ...home });
+    const initial = { ...home };
+    setDraft(initial);
     setEditing(true);
+    const stored = readStoredAutosaveInterval();
+    setAutosaveInterval(stored);
+    autosaveIntervalRef.current = stored;
+    lastSavedSnapshotRef.current = initial.content || '';
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
   }
 
   function closeEditor() {
-    if (saving) return;
+    if (saving || autosaving) return;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
     setEditing(false);
+    setAutosaving(false);
+  }
+
+  const scheduleAutosaveRetry = useCallback(() => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (!editingRef.current || autosaveIntervalRef.current === -1) {
+      return;
+    }
+    const intervalSec = autosaveIntervalRef.current > 0 ? autosaveIntervalRef.current : 30;
+    autosaveTimerRef.current = setTimeout(() => {
+      runAutosave();
+    }, intervalSec * 1000);
+  }, []);
+
+  const runAutosave = useCallback(async () => {
+    autosaveTimerRef.current = null;
+    if (!editingRef.current || autosaveIntervalRef.current === -1) {
+      return;
+    }
+    if (savingRef.current || autosavingRef.current) {
+      scheduleAutosaveRetry();
+      return;
+    }
+    const currentContent = draftRef.current.content || '';
+    if (currentContent === lastSavedSnapshotRef.current) {
+      return;
+    }
+    if (!appearanceRef.current) {
+      scheduleAutosaveRetry();
+      return;
+    }
+
+    const next = {
+      ...draftRef.current,
+      slug: 'home',
+      title: draftRef.current.title || 'Homepage',
+      content: currentContent,
+    };
+
+    setAutosaving(true);
+    autosavingRef.current = true;
+    try {
+      const saved = await api.updateAppearance({ ...appearanceRef.current, pages: [next] });
+      setAppearance(saved);
+      appearanceRef.current = saved;
+      setHome(normalizeHome((saved?.pages || []).find((page) => page.slug === 'home') || next));
+      lastSavedSnapshotRef.current = currentContent;
+      toast.success(t('docs.autosaved'));
+      setAutosaving(false);
+      autosavingRef.current = false;
+
+      if (
+        editingRef.current &&
+        autosaveIntervalRef.current !== -1 &&
+        (draftRef.current.content || '') !== lastSavedSnapshotRef.current
+      ) {
+        autosaveTimerRef.current = setTimeout(runAutosave, autosaveIntervalRef.current * 1000);
+      }
+    } catch (err) {
+      setAutosaving(false);
+      autosavingRef.current = false;
+      console.warn('Homepage autosave error, will retry:', err);
+      scheduleAutosaveRetry();
+    }
+  }, [scheduleAutosaveRetry, t, toast]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const isChanged = (draft.content || '') !== lastSavedSnapshotRef.current;
+    if (
+      isChanged &&
+      autosaveIntervalRef.current !== -1 &&
+      !autosaveTimerRef.current &&
+      !saving &&
+      !autosaving
+    ) {
+      const intervalSec = autosaveIntervalRef.current > 0 ? autosaveIntervalRef.current : 30;
+      autosaveTimerRef.current = setTimeout(runAutosave, intervalSec * 1000);
+    }
+  }, [draft.content, editing, saving, autosaving, runAutosave]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  function handleCycleAutosave() {
+    const next = getNextAutosaveInterval(autosaveInterval);
+    setAutosaveInterval(next);
+    autosaveIntervalRef.current = next;
+    writeStoredAutosaveInterval(next);
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
+    if (next === -1) {
+      toast.info(t('docs.autosaveOffNotice'));
+    } else {
+      toast.info(t('docs.autosaveIntervalNotice', { s: next }));
+      if ((draftRef.current.content || '') !== lastSavedSnapshotRef.current) {
+        autosaveTimerRef.current = setTimeout(runAutosave, next * 1000);
+      }
+    }
   }
 
   async function save(event) {
     event.preventDefault();
-    if (!appearance) return;
+    if (!appearance || saving || autosaving) return;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
     setSaving(true);
     setError('');
     const next = {
@@ -159,10 +309,51 @@ export default function Homepage() {
           full
           footer={
             <>
-              <button type="button" className="btn btn-ghost" onClick={closeEditor} disabled={saving}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={handleCycleAutosave}
+                disabled={saving}
+                title={t('docs.autosaveTooltip')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: autosaveInterval === -1 ? 'var(--muted)' : 'var(--accent)',
+                  border: '1px solid var(--border)',
+                  background: autosaveInterval === -1 ? 'transparent' : 'var(--accent-soft)',
+                  fontWeight: 500,
+                  fontSize: 13,
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    backgroundColor:
+                      autosaveInterval === -1
+                        ? 'var(--muted)'
+                        : autosaving
+                          ? '#f59e0b'
+                          : 'var(--accent)',
+                    display: 'inline-block',
+                  }}
+                />
+                <span>
+                  {autosaving
+                    ? t('docs.autosaving')
+                    : autosaveInterval === -1
+                      ? t('docs.autosaveOff')
+                      : t('docs.autosaveOn', { s: autosaveInterval })}
+                </span>
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={closeEditor} disabled={saving || autosaving}>
                 {t('common.cancel')}
               </button>
-              <button type="submit" form="homepage-editor" className="btn btn-primary" disabled={saving}>
+              <button type="submit" form="homepage-editor" className="btn btn-primary" disabled={saving || autosaving}>
                 {saving ? t('common.saving') : t('common.save')}
               </button>
             </>

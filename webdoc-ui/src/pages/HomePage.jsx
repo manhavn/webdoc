@@ -3,15 +3,16 @@ import { Navigate } from 'react-router-dom'
 import { useContent } from '../lib/ContentContext'
 import { useI18n } from '../i18n/I18nContext'
 import { prepareArticle } from '../lib/content'
-import { useInternalLinks } from '../lib/internalLinks'
+import { useImageZoom } from '../lib/useImageZoom'
 import { findFirstDocPath } from '../lib/docs'
 import PageShell from '../components/PageShell'
+import ImageZoomModal from '../components/ImageZoomModal'
 import { formatHomeTitle } from '../lib/title'
 
 export default function HomePage() {
   const { appearance, site, docsTree, loading } = useContent()
   const { lang, t } = useI18n()
-  const onInternalClick = useInternalLinks()
+  const { zoomImage, handleContentClick, closeZoom } = useImageZoom()
 
   const home = (appearance.pages || []).find((page) => page.slug === 'home')
   const prepared = useMemo(
@@ -47,17 +48,28 @@ export default function HomePage() {
   }
   if (home?.content?.trim() && prepared.html) {
     return (
-      <PageShell home>
-        <div className="VPHome">
-          <div className="wd-container wd-home-html">
-            <article
-              className="vp-doc"
-              onClick={onInternalClick}
-              dangerouslySetInnerHTML={{ __html: prepared.html }}
-            />
+      <>
+        <PageShell home>
+          <div className="VPHome">
+            <div className="wd-container wd-home-html">
+              <article
+                className="vp-doc"
+                onClick={handleContentClick}
+                dangerouslySetInnerHTML={{ __html: prepared.html }}
+              />
+            </div>
           </div>
-        </div>
-      </PageShell>
+        </PageShell>
+        {zoomImage && (
+          <ImageZoomModal
+            src={zoomImage.src}
+            alt={zoomImage.alt}
+            naturalWidth={zoomImage.naturalWidth}
+            naturalHeight={zoomImage.naturalHeight}
+            onClose={closeZoom}
+          />
+        )}
+      </>
     )
   }
 

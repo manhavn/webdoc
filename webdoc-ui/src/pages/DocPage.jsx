@@ -11,9 +11,10 @@ import {
   normalizeDocPath,
 } from '../lib/docs'
 import { prepareArticle } from '../lib/content'
-import { useInternalLinks } from '../lib/internalLinks'
+import { useImageZoom } from '../lib/useImageZoom'
 import { useRouteProgress } from '../lib/routeProgress'
 import DocsLayout from '../components/DocsLayout'
+import ImageZoomModal from '../components/ImageZoomModal'
 import NotFound from './NotFound'
 import { useI18n } from '../i18n/I18nContext'
 import { formatDocumentTitle } from '../lib/title'
@@ -55,7 +56,7 @@ export default function DocPage() {
   const path = normalizeDocPath(params['*'])
   const { docsTree, site, loading: contentLoading } = useContent()
   const { t } = useI18n()
-  const onInternalClick = useInternalLinks()
+  const { zoomImage, handleContentClick, closeZoom } = useImageZoom()
   const { setLoading: setRouteLoading } = useRouteProgress()
   const [doc, setDoc] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -225,58 +226,71 @@ export default function DocPage() {
   const outline = group ? [] : prepared.outline
 
   return (
-    <DocsLayout
-      contentKey={displayPath}
-      contentPath={doc?.path || null}
-      outline={outline}
-      asideTitle={group ? t('doc.contents') : t('doc.onThisPage')}
-      asideLinks={asideLinks}
-      footer={
-        <div className="wd-doc-nav-footer">
-          {prev && (
-            <Link className="wd-doc-nav" to={prev.link}>
-              <span>{t('doc.prev')}</span>
-              <strong>{prev.title}</strong>
-            </Link>
+    <>
+      <DocsLayout
+        contentKey={displayPath}
+        contentPath={doc?.path || null}
+        outline={outline}
+        asideTitle={group ? t('doc.contents') : t('doc.onThisPage')}
+        asideLinks={asideLinks}
+        footer={
+          <div className="wd-doc-nav-footer">
+            {prev && (
+              <Link className="wd-doc-nav" to={prev.link}>
+                <span>{t('doc.prev')}</span>
+                <strong>{prev.title}</strong>
+              </Link>
+            )}
+            {next && (
+              <Link className="wd-doc-nav wd-doc-nav--next" to={next.link}>
+                <span>{t('doc.next')}</span>
+                <strong>{next.title}</strong>
+              </Link>
+            )}
+          </div>
+        }
+      >
+        <div onClick={handleContentClick}>
+          <h1>{title}</h1>
+          {description && !duplicateLead && (
+            <p className="wd-article-lead">{description}</p>
           )}
-          {next && (
-            <Link className="wd-doc-nav wd-doc-nav--next" to={next.link}>
-              <span>{t('doc.next')}</span>
-              <strong>{next.title}</strong>
-            </Link>
-          )}
-        </div>
-      }
-    >
-      <h1>{title}</h1>
-      {description && !duplicateLead && (
-        <p className="wd-article-lead">{description}</p>
-      )}
 
-      {doc && (
-        <>
-          {prepared.html && (
-            <div onClick={onInternalClick} dangerouslySetInnerHTML={{ __html: prepared.html }} />
-          )}
-          {children.length > 0 && (
+          {doc && (
             <>
-              <h2 id="cac-huong-dan">
-                {group ? t('doc.guides') : t('doc.related')}
-              </h2>
-              <ul className="wd-doc-link-list">
-                {children.map((child) => (
-                  <li key={child.id || child.path}>
-                    <Link to={child.path}>
-                      <i className="fas fa-plus" />
-                      <span>{child.title}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              {prepared.html && (
+                <div dangerouslySetInnerHTML={{ __html: prepared.html }} />
+              )}
+              {children.length > 0 && (
+                <>
+                  <h2 id="cac-huong-dan">
+                    {group ? t('doc.guides') : t('doc.related')}
+                  </h2>
+                  <ul className="wd-doc-link-list">
+                    {children.map((child) => (
+                      <li key={child.id || child.path}>
+                        <Link to={child.path}>
+                          <i className="fas fa-plus" />
+                          <span>{child.title}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </>
           )}
-        </>
+        </div>
+      </DocsLayout>
+      {zoomImage && (
+        <ImageZoomModal
+          src={zoomImage.src}
+          alt={zoomImage.alt}
+          naturalWidth={zoomImage.naturalWidth}
+          naturalHeight={zoomImage.naturalHeight}
+          onClose={closeZoom}
+        />
       )}
-    </DocsLayout>
+    </>
   )
 }

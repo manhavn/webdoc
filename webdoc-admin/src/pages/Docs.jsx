@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { buildTree, flattenTree, normalizeNode, ROOT_KEY, toId } from '../lib/docsTree';
 import {
@@ -16,6 +16,31 @@ import Icon from '../components/Icons';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../lib/auth';
+import {
+  AUTOSAVE_INTERVALS,
+  readStoredAutosaveInterval,
+  writeStoredAutosaveInterval,
+  getNextAutosaveInterval,
+} from '../lib/autosave';
+
+function serializeDocForm(f) {
+  if (!f) return '';
+  const access = Array.isArray(f.userAccess) ? [...f.userAccess].sort() : [];
+  return JSON.stringify({
+    title: f.title || '',
+    slug: f.slug || '',
+    path: f.path || '',
+    pathOverride: Boolean(f.pathOverride),
+    parentId: f.parentId || '',
+    group: Boolean(f.group),
+    order: Number(f.order) || 0,
+    description: f.description || '',
+    content: f.content || '',
+    published: f.published !== false,
+    userAccess: access,
+  });
+}
 
 const EMPTY_FORM = {
   title: '',
@@ -28,6 +53,7 @@ const EMPTY_FORM = {
   description: '',
   content: '',
   published: true,
+  userAccess: [],
 };
 
 function normalizePath(value) {
@@ -47,6 +73,15 @@ function joinPath(parentPath, slug) {
     .replace(/^\/+|\/+$/g, '');
   if (!segment) return base;
   return base === '/' ? `/${segment}` : `${base}/${segment}`;
+}
+
+function docPublicHref(node) {
+  if (!node || !node.path) return '/';
+  const cleanPath = node.path.startsWith('/') ? node.path : `/${node.path}`;
+  if (typeof window !== 'undefined' && window.location.port === '5174') {
+    return `//${window.location.hostname}:5173${cleanPath}`;
+  }
+  return cleanPath;
 }
 
 function collectDescendants(nodes, id) {
@@ -126,6 +161,15 @@ function DocRow({
               <span className={`badge ${node.published ? 'badge-published' : 'badge-draft'}`}>
                 {node.published ? t('docs.badgePublic') : t('docs.badgeHidden')}
               </span>
+              {node.ownerUsername && (
+                <span
+                  className="badge badge-muted"
+                  style={{ fontSize: 11, background: 'var(--border-soft)' }}
+                  title={t('docs.ownerTooltip', { user: node.ownerUsername })}
+                >
+                  👤 @{node.ownerUsername}
+                </span>
+              )}
             </div>
             <div className="docs-meta">
               <code>{node.path || '—'}</code>
@@ -149,8 +193,9 @@ function DocRow({
             <button
               type="button"
               className="icon-button"
-              title={t('common.edit')}
+              title={node.canEdit === false ? t('docs.noEditPermission') : t('common.edit')}
               aria-label={t('docs.editAria', { title: node.title })}
+              disabled={node.canEdit === false}
               onClick={() => onEdit(node)}
             >
               <Icon name="edit" size={16} />
@@ -158,17 +203,36 @@ function DocRow({
             <button
               type="button"
               className={`icon-button docs-action-toggle ${node.published ? 'docs-action-published' : 'docs-action-hidden'}`}
-              title={node.published ? t('docs.hide') : t('docs.show')}
+              title={
+                node.canTogglePublish === false
+                  ? t('docs.noPublishPermission')
+                  : node.published
+                    ? t('docs.hide')
+                    : t('docs.show')
+              }
               aria-label={
                 node.published
                   ? t('docs.hideAria', { title: node.title })
                   : t('docs.showAria', { title: node.title })
               }
-              disabled={busy || isToggling}
+              disabled={busy || isToggling || node.canTogglePublish === false}
               onClick={() => onTogglePublish(node)}
             >
               <Icon name={node.published ? 'eye' : 'eyeOff'} size={16} />
             </button>
+            {Boolean(node.published) && (
+              <a
+                href={docPublicHref(node)}
+                target="_blank"
+                rel="noreferrer"
+                className="icon-button"
+                title={t('docs.viewOnSite')}
+                aria-label={t('docs.viewOnSiteAria', { title: node.title })}
+                style={{ textDecoration: 'none' }}
+              >
+                <Icon name="external" size={16} />
+              </a>
+            )}
             <button
               type="button"
               className="icon-button"
@@ -192,8 +256,9 @@ function DocRow({
             <button
               type="button"
               className="icon-button icon-button-danger"
-              title={t('common.delete')}
+              title={node.canDelete === false ? t('docs.noDeletePermission') : t('common.delete')}
               aria-label={t('docs.deleteAria', { title: node.title })}
+              disabled={node.canDelete === false}
               onClick={() => onDelete(node)}
             >
               <Icon name="trash" size={16} />
@@ -229,6 +294,8 @@ function DocRow({
 export default function Docs() {
   const { t } = useI18n();
   const toast = useToast();
+  const { user: currentUser } = useAuth();
+  const [usersList, setUsersList] = useState([]);
 
   const [nodes, setNodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -242,6 +309,23 @@ export default function Docs() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [autosaveInterval, setAutosaveInterval] = useState(() => readStoredAutosaveInterval());
+  const [autosaving, setAutosaving] = useState(false);
+  const autosaveIntervalRef = useRef(autosaveInterval);
+  autosaveIntervalRef.current = autosaveInterval;
+
+  const autosaveTimerRef = useRef(null);
+  const lastSavedSnapshotRef = useRef('');
+  const formRef = useRef(form);
+  formRef.current = form;
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
+  const originalRef = useRef(original);
+  originalRef.current = original;
+  const savingRef = useRef(saving);
+  savingRef.current = saving;
+  const autosavingRef = useRef(autosaving);
+  autosavingRef.current = autosaving;
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const contentInputRef = useRef(null);
@@ -275,9 +359,13 @@ export default function Docs() {
     setLoading(true);
     setError('');
     try {
-      const data = await api.listDocs();
-      const list = (Array.isArray(data) ? data : data?.items || []).map(normalizeNode);
+      const [docsData, usersData] = await Promise.all([
+        api.listDocs(),
+        api.listUsers().catch(() => []),
+      ]);
+      const list = (Array.isArray(docsData) ? docsData : docsData?.items || []).map(normalizeNode);
       setNodes(list);
+      setUsersList(Array.isArray(usersData) ? usersData : []);
     } catch (err) {
       setError(err.message || t('docs.error'));
     } finally {
@@ -342,20 +430,31 @@ export default function Docs() {
   }
 
   function openCreate(parent, group) {
-    setForm({
+    const initialForm = {
       ...EMPTY_FORM,
       parentId: parent?.id || '',
       group: Boolean(group),
       order: nextOrder(parent?.id || null),
       published: true,
-    });
+      userAccess: [],
+    };
+    setForm(initialForm);
     setOriginal(null);
     setFormError('');
     setEditor({ mode: 'create', parent: parent || null });
+
+    const stored = readStoredAutosaveInterval();
+    setAutosaveInterval(stored);
+    autosaveIntervalRef.current = stored;
+    lastSavedSnapshotRef.current = serializeDocForm(initialForm);
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
   }
 
   function openEdit(node) {
-    setForm({
+    const initialForm = {
       title: node.title || '',
       slug: node.slug || '',
       path: '',
@@ -366,21 +465,185 @@ export default function Docs() {
       description: node.description || '',
       content: node.content || '',
       published: node.published !== false,
-    });
+      userAccess: Array.isArray(node.userAccess) ? node.userAccess : [],
+    };
+    setForm(initialForm);
     setOriginal(node);
     setFormError('');
     setEditor({ mode: 'edit', node });
+
+    const stored = readStoredAutosaveInterval();
+    setAutosaveInterval(stored);
+    autosaveIntervalRef.current = stored;
+    lastSavedSnapshotRef.current = serializeDocForm(initialForm);
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
   }
 
   function closeEditor() {
-    if (saving) return;
+    if (saving || autosaving) return;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
     setEditor(null);
     setOriginal(null);
     setFormError('');
+    setAutosaving(false);
   }
-
   function update(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  const scheduleAutosaveRetry = useCallback(() => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (!editorRef.current || autosaveIntervalRef.current === -1) {
+      return;
+    }
+    const intervalSec = autosaveIntervalRef.current > 0 ? autosaveIntervalRef.current : 30;
+    autosaveTimerRef.current = setTimeout(() => {
+      runAutosave();
+    }, intervalSec * 1000);
+  }, []);
+
+  const runAutosave = useCallback(async () => {
+    autosaveTimerRef.current = null;
+    if (!editorRef.current || autosaveIntervalRef.current === -1) {
+      return;
+    }
+    if (savingRef.current || autosavingRef.current) {
+      scheduleAutosaveRetry();
+      return;
+    }
+
+    const currentForm = formRef.current;
+    const currentSnapshot = serializeDocForm(currentForm);
+    if (currentSnapshot === lastSavedSnapshotRef.current) {
+      return;
+    }
+
+    const title = currentForm.title.trim();
+    if (!title) {
+      scheduleAutosaveRetry();
+      return;
+    }
+
+    const slug = slugify(currentForm.slug) || slugify(title);
+    if (!slug) {
+      scheduleAutosaveRetry();
+      return;
+    }
+
+    const isOwner = editorRef.current?.mode === 'create' || originalRef.current?.isOwner !== false;
+    const payload = {
+      title,
+      slug,
+      parentId: currentForm.parentId || null,
+      group: Boolean(currentForm.group),
+      order: Number(currentForm.order) || 0,
+      description: currentForm.description.trim(),
+      content: currentForm.content,
+      published: Boolean(currentForm.published),
+      ...(isOwner ? { userAccess: currentForm.userAccess || [] } : {}),
+    };
+
+    if (currentForm.pathOverride && currentForm.path.trim()) {
+      payload.path = normalizePath(currentForm.path);
+    }
+
+    const currentEditor = editorRef.current;
+    const currentOriginal = originalRef.current;
+
+    if (currentEditor?.mode === 'edit' && currentOriginal) {
+      if (slug === (currentOriginal.slug || '')) delete payload.slug;
+      if (!currentForm.pathOverride) delete payload.path;
+    }
+
+    setAutosaving(true);
+    autosavingRef.current = true;
+    try {
+      if (currentEditor?.mode === 'edit' && currentOriginal) {
+        const saved = await api.updateDoc(currentOriginal.id, payload);
+        const savedNode = normalizeNode(saved);
+        setOriginal(savedNode);
+        originalRef.current = savedNode;
+      } else {
+        const saved = await api.createDoc(payload);
+        const savedNode = normalizeNode(saved);
+        setOriginal(savedNode);
+        originalRef.current = savedNode;
+        setEditor({ mode: 'edit', node: savedNode });
+        editorRef.current = { mode: 'edit', node: savedNode };
+      }
+      lastSavedSnapshotRef.current = currentSnapshot;
+      toast.success(t('docs.autosaved'));
+      load();
+      setAutosaving(false);
+      autosavingRef.current = false;
+
+      if (
+        editorRef.current &&
+        autosaveIntervalRef.current !== -1 &&
+        serializeDocForm(formRef.current) !== lastSavedSnapshotRef.current
+      ) {
+        autosaveTimerRef.current = setTimeout(runAutosave, autosaveIntervalRef.current * 1000);
+      }
+    } catch (err) {
+      setAutosaving(false);
+      autosavingRef.current = false;
+      console.warn('Autosave failed, will retry:', err);
+      scheduleAutosaveRetry();
+    }
+  }, [load, t, toast, scheduleAutosaveRetry]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const isChanged = serializeDocForm(form) !== lastSavedSnapshotRef.current;
+    if (
+      isChanged &&
+      autosaveIntervalRef.current !== -1 &&
+      !autosaveTimerRef.current &&
+      !saving &&
+      !autosaving
+    ) {
+      const intervalSec = autosaveIntervalRef.current > 0 ? autosaveIntervalRef.current : 30;
+      autosaveTimerRef.current = setTimeout(runAutosave, intervalSec * 1000);
+    }
+  }, [form, editor, saving, autosaving, runAutosave]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  function handleCycleAutosave() {
+    const next = getNextAutosaveInterval(autosaveInterval);
+    setAutosaveInterval(next);
+    autosaveIntervalRef.current = next;
+    writeStoredAutosaveInterval(next);
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
+    if (next === -1) {
+      toast.info(t('docs.autosaveOffNotice'));
+    } else {
+      toast.info(t('docs.autosaveIntervalNotice', { s: next }));
+      if (serializeDocForm(formRef.current) !== lastSavedSnapshotRef.current) {
+        autosaveTimerRef.current = setTimeout(runAutosave, next * 1000);
+      }
+    }
   }
 
   function handleTitleChange(event) {
@@ -438,7 +701,11 @@ export default function Docs() {
 
   async function handleSave(event) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || autosaving) return;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
 
     const title = form.title.trim();
     if (!title) {
@@ -452,6 +719,7 @@ export default function Docs() {
       return;
     }
 
+    const isOwner = editor?.mode === 'create' || original?.isOwner !== false;
     const payload = {
       title,
       slug,
@@ -461,6 +729,7 @@ export default function Docs() {
       description: form.description.trim(),
       content: form.content,
       published: Boolean(form.published),
+      ...(isOwner ? { userAccess: form.userAccess || [] } : {}),
     };
 
     if (form.pathOverride && form.path.trim()) {
@@ -691,10 +960,51 @@ export default function Docs() {
           onClose={closeEditor}
           footer={
             <>
-              <button type="button" className="btn btn-ghost" onClick={closeEditor} disabled={saving}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={handleCycleAutosave}
+                disabled={saving}
+                title={t('docs.autosaveTooltip')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: autosaveInterval === -1 ? 'var(--muted)' : 'var(--accent)',
+                  border: '1px solid var(--border)',
+                  background: autosaveInterval === -1 ? 'transparent' : 'var(--accent-soft)',
+                  fontWeight: 500,
+                  fontSize: 13,
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    backgroundColor:
+                      autosaveInterval === -1
+                        ? 'var(--muted)'
+                        : autosaving
+                          ? '#f59e0b'
+                          : 'var(--accent)',
+                    display: 'inline-block',
+                  }}
+                />
+                <span>
+                  {autosaving
+                    ? t('docs.autosaving')
+                    : autosaveInterval === -1
+                      ? t('docs.autosaveOff')
+                      : t('docs.autosaveOn', { s: autosaveInterval })}
+                </span>
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={closeEditor} disabled={saving || autosaving}>
                 {t('common.cancel')}
               </button>
-              <button type="submit" form="docs-form" className="btn btn-primary" disabled={saving}>
+              <button type="submit" form="docs-form" className="btn btn-primary" disabled={saving || autosaving}>
                 {saving
                   ? t('common.saving')
                   : editor.mode === 'edit'
@@ -803,6 +1113,59 @@ export default function Docs() {
                 placeholder={t('docs.descriptionPlaceholder')}
               />
             </label>
+
+            {!form.group && (
+              <div className="field">
+                <span>{t('docs.userAccessTitle')}</span>
+                <small className="field-hint" style={{ marginBottom: 8, display: 'block' }}>
+                  {editor.mode === 'create' || original?.isOwner !== false
+                    ? t('docs.userAccessHintOwner')
+                    : t('docs.userAccessHintNonOwner', { owner: original?.ownerUsername || 'Admin' })}
+                </small>
+                {usersList.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {usersList
+                      .filter((u) => u.id !== currentUser?.id)
+                      .map((u) => {
+                        const isOwnerOfDoc = editor.mode === 'create' || original?.isOwner !== false;
+                        const checked = (form.userAccess || []).includes(u.id);
+                        return (
+                          <label
+                            key={u.id}
+                            className={`badge ${checked ? 'badge-published' : 'badge-muted'}`}
+                            style={{
+                              cursor: isOwnerOfDoc ? 'pointer' : 'not-allowed',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '5px 10px',
+                              fontSize: 12,
+                              userSelect: 'none',
+                              opacity: isOwnerOfDoc ? 1 : 0.7,
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={!isOwnerOfDoc}
+                              onChange={(e) => {
+                                if (!isOwnerOfDoc) return;
+                                const next = e.target.checked
+                                  ? [...(form.userAccess || []), u.id]
+                                  : (form.userAccess || []).filter((id) => id !== u.id);
+                                update('userAccess', next);
+                              }}
+                            />
+                            <span>@{u.username}</span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <small style={{ color: 'var(--muted)' }}>{t('docs.noOtherUsers')}</small>
+                )}
+              </div>
+            )}
 
             <div className="field docs-content-field">
               <div className="content-field-head">

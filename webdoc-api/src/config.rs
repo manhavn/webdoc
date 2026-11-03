@@ -81,7 +81,11 @@ impl Config {
             port: env_or("PORT", "18620").parse().unwrap_or(18620),
             api_prefix: normalize_prefix("API_PREFIX", "/api"),
             admin_prefix: normalize_prefix("ADMIN_PREFIX", "/admin"),
-            jwt_secret: env_or("JWT_SECRET", "dev-secret-change-me"),
+            jwt_secret: env::var("JWT_SECRET")
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(crate::auth::generate_random_secret),
             admin_username: env_or("ADMIN_USERNAME", "admin"),
             admin_password: env_or("ADMIN_PASSWORD", "admin123"),
             data_dir,

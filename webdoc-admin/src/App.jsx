@@ -11,6 +11,7 @@ import Appearance from './pages/Appearance';
 import CmsSettings from './pages/CmsSettings';
 import Homepage from './pages/Homepage';
 import Languages from './pages/Languages';
+import Users from './pages/Users';
 
 function LoadingScreen() {
   const { t } = useI18n();
@@ -30,6 +31,26 @@ function ProtectedRoute({ children }) {
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
+
+  if (user.role !== 'admin') {
+    const raw = location.pathname.replace(/^\/admin/, '') || '/';
+    const path = raw.startsWith('/') ? raw : `/${raw}`;
+    const allowed =
+      Array.isArray(user.allowedRoutes) && user.allowedRoutes.length > 0
+        ? user.allowedRoutes
+        : ['/', '/docs', '/cms-settings'];
+
+    const isAllowed =
+      allowed.includes(path) ||
+      allowed.includes(location.pathname) ||
+      allowed.includes(`/admin${path}`) ||
+      (path === '/' && (allowed.includes('/admin') || allowed.includes('/')));
+
+    if (!isAllowed) {
+      return <Navigate to="/" replace />;
+    }
+  }
+
   return children;
 }
 
@@ -52,6 +73,7 @@ export default function App() {
         <Route path="cms-settings" element={<CmsSettings />} />
         <Route path="homepage" element={<Homepage />} />
         <Route path="languages" element={<Languages />} />
+        <Route path="users" element={<Users />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

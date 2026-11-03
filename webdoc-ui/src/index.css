@@ -915,13 +915,24 @@ html[data-theme='dark'] .wd-skel-block {
   text-underline-offset: 2px;
 }
 
-.VPDoc .vp-doc img {
+.VPDoc .vp-doc img,
+.wd-doc-content img,
+.wd-home-custom img {
   display: block;
   max-width: 100%;
   height: auto;
   margin: 16px auto;
   border-radius: 8px;
   border: 1px solid var(--vp-c-divider);
+  cursor: zoom-in;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.VPDoc .vp-doc img:hover,
+.wd-doc-content img:hover,
+.wd-home-custom img:hover {
+  filter: brightness(1.02);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
 .wd-article-meta {
@@ -2490,4 +2501,199 @@ html[data-theme='dark'] .wd-contact-form textarea::placeholder {
 }
 .wd-doc .wd-btn {
   margin-top: 4px;
+}
+
+/* ==========================================================================
+   Image Zoom Lightbox Modal
+   ========================================================================== */
+.wd-image-zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  animation: wd-zoom-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes wd-zoom-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.wd-image-zoom-toolbar {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 9999px;
+  padding: 4px 6px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  user-select: none;
+}
+
+.wd-image-zoom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: transparent;
+  color: #f8fafc;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+}
+
+.wd-image-zoom-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.wd-image-zoom-btn:active {
+  transform: scale(0.95);
+}
+
+.wd-image-zoom-btn--text {
+  width: auto;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wd-image-zoom-btn--close {
+  color: #cbd5e1;
+}
+
+.wd-image-zoom-btn--close:hover {
+  background: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.wd-image-zoom-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.wd-image-zoom-pill:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.wd-image-zoom-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 2px;
+}
+
+.wd-image-zoom-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.wd-image-zoom-stage.is-dragging {
+  cursor: grabbing;
+}
+
+.wd-image-zoom-img {
+  display: block;
+  max-width: none !important;
+  max-height: none !important;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+}
+
+.wd-image-zoom-caption {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 80vw;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #f1f5f9;
+  font-size: 13px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+  z-index: 100000;
+}
+
+@media (max-width: 640px) {
+  .wd-image-zoom-toolbar {
+    top: 12px;
+    right: 12px;
+    gap: 4px;
+    padding: 3px 4px;
+  }
+  .wd-image-zoom-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .wd-image-zoom-pill {
+    min-width: 40px;
+    height: 28px;
+    font-size: 11px;
+    padding: 0 6px;
+  }
+  .wd-image-zoom-caption {
+    bottom: 16px;
+    font-size: 12px;
+    padding: 6px 14px;
+    max-width: 90vw;
+  }
 }

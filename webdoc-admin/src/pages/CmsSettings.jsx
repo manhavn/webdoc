@@ -5,6 +5,7 @@ import { useToast } from '../components/Toast';
 import { api } from '../lib/api';
 import Icon from '../components/Icons';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useAuth } from '../lib/auth';
 
 const PRESET_PALETTES = [
   {
@@ -131,16 +132,20 @@ function toColorValue(value, fallback = '#134e4a') {
 
 export default function CmsSettings() {
   const { cms, updateCms, resetCms } = useCms();
+  const { user, logout } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const { t } = useI18n();
   const toast = useToast();
 
   const [form, setForm] = useState(cms || DEFAULT_CMS_SETTINGS);
-  const [activeTab, setActiveTab] = useState('brand');
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'brand' : 'security');
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [confirmResetSecret, setConfirmResetSecret] = useState(false);
+  const [resettingSecret, setResettingSecret] = useState(false);
 
   const logoInputRef = useRef(null);
   const faviconInputRef = useRef(null);
@@ -160,6 +165,12 @@ export default function CmsSettings() {
       });
     }
   }, [cms]);
+
+  useEffect(() => {
+    if (!isAdmin && activeTab !== 'security') {
+      setActiveTab('security');
+    }
+  }, [isAdmin, activeTab]);
 
   function updateField(key, value) {
     setForm((current) => ({
@@ -236,7 +247,11 @@ export default function CmsSettings() {
     event.preventDefault();
     setSaving(true);
     try {
-      await updateCms(form);
+      const payload = {
+        ...form,
+        tokenDays: Math.max(1, Math.min(3650, parseInt(form.tokenDays, 10) || 1)),
+      };
+      await updateCms(payload);
       toast.success(t('cms.saveSuccess'));
     } catch (err) {
       toast.error(err.message || 'Lỗi khi lưu cài đặt CMS');
@@ -259,6 +274,21 @@ export default function CmsSettings() {
     }
   }
 
+  async function handleResetUserSecret() {
+    setResettingSecret(true);
+    try {
+      await api.resetUserSecret();
+      toast.success(t('cms.resetSecretSuccess'));
+      setConfirmResetSecret(false);
+      setTimeout(() => {
+        logout();
+      }, 1200);
+    } catch (err) {
+      toast.error(err.message || 'Lỗi khi đặt lại secret key');
+      setResettingSecret(false);
+    }
+  }
+
   const primaryColor = form.colors?.primary || '#0f766e';
   const currentLoginPanelBg = form.colors?.loginPanelBg || form.loginPanelBg || '';
 
@@ -271,15 +301,17 @@ export default function CmsSettings() {
           <p className="page-desc">{t('cms.subtitle')}</p>
         </div>
         <div className="page-actions">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => setConfirmReset(true)}
-            disabled={saving || resetting}
-          >
-            <Icon name="refresh" size={15} />
-            {t('cms.reset')}
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setConfirmReset(true)}
+              disabled={saving || resetting}
+            >
+              <Icon name="refresh" size={15} />
+              {t('cms.reset')}
+            </button>
+          )}
           <button
             type="submit"
             form="cms-settings-form"
@@ -292,38 +324,51 @@ export default function CmsSettings() {
       </div>
 
       <div className="appearance-tabs" role="tablist">
+        {isAdmin && (
+          <>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'brand'}
+              className={`appearance-tab ${activeTab === 'brand' ? 'active' : ''}`}
+              onClick={() => setActiveTab('brand')}
+            >
+              {t('cms.tabBrand')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'colors'}
+              className={`appearance-tab ${activeTab === 'colors' ? 'active' : ''}`}
+              onClick={() => setActiveTab('colors')}
+            >
+              {t('cms.tabColors')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'login'}
+              className={`appearance-tab ${activeTab === 'login' ? 'active' : ''}`}
+              onClick={() => setActiveTab('login')}
+            >
+              {t('cms.tabLogin')}
+            </button>
+          </>
+        )}
         <button
           type="button"
           role="tab"
-          aria-selected={activeTab === 'brand'}
-          className={`appearance-tab ${activeTab === 'brand' ? 'active' : ''}`}
-          onClick={() => setActiveTab('brand')}
+          aria-selected={activeTab === 'security'}
+          className={`appearance-tab ${activeTab === 'security' ? 'active' : ''}`}
+          onClick={() => setActiveTab('security')}
         >
-          {t('cms.tabBrand')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'colors'}
-          className={`appearance-tab ${activeTab === 'colors' ? 'active' : ''}`}
-          onClick={() => setActiveTab('colors')}
-        >
-          {t('cms.tabColors')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'login'}
-          className={`appearance-tab ${activeTab === 'login' ? 'active' : ''}`}
-          onClick={() => setActiveTab('login')}
-        >
-          {t('cms.tabLogin')}
+          {t('cms.tabSecurity')}
         </button>
       </div>
 
       <form id="cms-settings-form" className="form-stack" onSubmit={handleSubmit}>
         {/* Tab 1: Brand & Logo */}
-        {activeTab === 'brand' && (
+        {isAdmin && activeTab === 'brand' && (
           <div className="appearance-stack">
             <section className="panel form-stack">
               <h3 className="panel-title">{t('cms.tabBrand')}</h3>
@@ -477,7 +522,7 @@ export default function CmsSettings() {
         )}
 
         {/* Tab 2: Colors */}
-        {activeTab === 'colors' && (
+        {isAdmin && activeTab === 'colors' && (
           <div className="appearance-stack">
             <section className="panel form-stack">
               <h3 className="panel-title">{t('cms.presets')}</h3>
@@ -670,7 +715,7 @@ export default function CmsSettings() {
         )}
 
         {/* Tab 3: Login Screen */}
-        {activeTab === 'login' && (
+        {isAdmin && activeTab === 'login' && (
           <div className="appearance-stack">
             <section className="panel form-stack">
               <h3 className="panel-title">{t('cms.tabLogin')}</h3>
@@ -777,6 +822,231 @@ export default function CmsSettings() {
                     </button>
                   ))}
                 </div>
+              </div>
+            </section>
+            <section className="panel form-stack">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h3 className="panel-title">{t('cms.tokenLifespanTitle')}</h3>
+                  <p className="panel-desc" style={{ margin: '2px 0 0' }}>
+                    {t('cms.tokenDaysCurrentNotice', {
+                      days: form.tokenDays || 1,
+                      hours: ((form.tokenDays || 1) * 24).toLocaleString(),
+                    })}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setActiveTab('security')}
+                >
+                  <Icon name="lock" size={14} />
+                  {t('cms.tabSecurity')}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Tab 4: Security & Sessions */}
+        {activeTab === 'security' && (
+          <div className="appearance-stack">
+            <section className="panel form-stack">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon name="lock" size={20} />
+                </div>
+                <div>
+                  <h3 className="panel-title" style={{ margin: 0 }}>
+                    {t('cms.tokenLifespanTitle')}
+                  </h3>
+                  <p className="panel-desc" style={{ margin: '2px 0 0' }}>
+                    {t('cms.tokenLifespanDesc')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="settings-grid" style={{ marginTop: 8 }}>
+                <div className="field">
+                  <label htmlFor="token-days-input" style={{ fontWeight: 600 }}>
+                    {t('cms.tokenDaysLabel')}
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, maxWidth: 360 }}>
+                    <input
+                      id="token-days-input"
+                      type="number"
+                      min="1"
+                      max="3650"
+                      step="1"
+                      value={form.tokenDays ?? 1}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          updateField('tokenDays', '');
+                        } else {
+                          const parsed = parseInt(val, 10);
+                          updateField('tokenDays', Number.isNaN(parsed) ? '' : Math.max(1, Math.min(3650, parsed)));
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!form.tokenDays || form.tokenDays < 1) {
+                          updateField('tokenDays', 1);
+                        }
+                      }}
+                      placeholder="30"
+                      style={{ maxWidth: 160, fontWeight: 600, fontSize: 15 }}
+                    />
+                    <span style={{ color: 'var(--muted)', fontSize: 14 }}>
+                      {t('cms.daysUnit')}
+                    </span>
+                  </div>
+                  <small className="field-hint">{t('cms.tokenDaysHint')}</small>
+                </div>
+              </div>
+
+              {/* Quick Presets */}
+              <div style={{ marginTop: 4 }}>
+                <span className="field-hint" style={{ fontWeight: 500, display: 'block', marginBottom: 8 }}>
+                  {t('cms.tokenDaysPresets')}
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {[
+                    { days: 1, label: t('cms.tokenDaysPreset1') },
+                    { days: 7, label: t('cms.tokenDaysPreset7') },
+                    { days: 30, label: t('cms.tokenDaysPreset30') },
+                    { days: 90, label: t('cms.tokenDaysPreset90') },
+                    { days: 180, label: t('cms.tokenDaysPreset180') },
+                    { days: 365, label: t('cms.tokenDaysPreset365') },
+                  ].map((preset) => {
+                    const isSelected = Number(form.tokenDays) === preset.days;
+                    return (
+                      <button
+                        key={preset.days}
+                        type="button"
+                        className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{
+                          borderRadius: 6,
+                          padding: '6px 12px',
+                          border: isSelected ? 'none' : '1px solid var(--border)',
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                        onClick={() => updateField('tokenDays', preset.days)}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Status & info banner */}
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  background: 'var(--bg-soft, #f8fafc)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  fontSize: 13,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: 'var(--accent)', fontWeight: 600 }}>●</span>
+                  <span>
+                    {t('cms.tokenDaysCurrentNotice', {
+                      days: form.tokenDays || 1,
+                      hours: ((form.tokenDays || 1) * 24).toLocaleString(),
+                    })}
+                  </span>
+                </div>
+                <small style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 14 }}>
+                  {t('cms.tokenDaysEffectiveNotice')}
+                </small>
+              </div>
+            </section>
+
+            {/* User Secret Key & Revoke Sessions Section */}
+            <section className="panel form-stack">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon name="logout" size={18} />
+                </div>
+                <div>
+                  <h3 className="panel-title" style={{ margin: 0 }}>
+                    {t('cms.userSecretTitle')}
+                  </h3>
+                  <p className="panel-desc" style={{ margin: '2px 0 0' }}>
+                    {t('cms.userSecretDesc')}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: '14px 16px',
+                  borderRadius: 8,
+                  background: 'var(--bg-soft, #f8fafc)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>
+                    {t('cms.userSecretActionTitle')}
+                  </div>
+                  <small style={{ color: 'var(--muted)', fontSize: 12, display: 'block', marginTop: 2 }}>
+                    {t('cms.userSecretActionHint')}
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => setConfirmResetSecret(true)}
+                  disabled={resettingSecret}
+                  style={{
+                    borderColor: 'var(--error, #ef4444)',
+                    color: 'var(--error, #ef4444)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 600,
+                  }}
+                >
+                  <Icon name="refresh" size={14} />
+                  {resettingSecret ? t('cms.resettingSecret') : t('cms.resetSecretBtn')}
+                </button>
               </div>
             </section>
           </div>
@@ -902,7 +1172,7 @@ export default function CmsSettings() {
               </div>
             </div>
           </section>
-        ) : (
+        ) : activeTab === 'security' ? null : (
           <section className="panel form-stack">
             <h3 className="panel-title">{t('cms.preview')}</h3>
             <p className="panel-desc">{t('cms.previewDesc')}</p>
@@ -1004,6 +1274,16 @@ export default function CmsSettings() {
           busy={resetting}
           onCancel={() => setConfirmReset(false)}
           onConfirm={handleReset}
+        />
+      )}
+      {confirmResetSecret && (
+        <ConfirmDialog
+          title={t('cms.resetSecretConfirmTitle')}
+          message={t('cms.resetSecretConfirmMessage')}
+          confirmLabel={t('cms.resetSecretConfirmBtn')}
+          busy={resettingSecret}
+          onCancel={() => setConfirmResetSecret(false)}
+          onConfirm={handleResetUserSecret}
         />
       )}
     </div>

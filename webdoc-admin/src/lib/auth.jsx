@@ -13,6 +13,7 @@ function normalizeUser(data) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(() => Boolean(getToken()));
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -24,7 +25,10 @@ export function AuthProvider({ children }) {
       }
       try {
         const data = await api.me();
-        if (active) setUser(normalizeUser(data));
+        if (active) {
+          setUser(normalizeUser(data));
+          setSessionExpired(false);
+        }
       } catch {
         if (active) setUser(null);
       } finally {
@@ -40,8 +44,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const handler = () => {
-      setToken(null);
-      setUser(null);
+      setSessionExpired(true);
     };
     window.addEventListener(UNAUTHORIZED_EVENT, handler);
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, handler);
@@ -51,17 +54,27 @@ export function AuthProvider({ children }) {
     const data = await api.login(username, password);
     setToken(data.token);
     setUser(normalizeUser(data.user) || { username, role: 'admin' });
+    setSessionExpired(false);
     return data;
   }, []);
 
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
+    setSessionExpired(false);
   }, []);
 
+  const refreshToken = useCallback(async () => {
+    const data = await api.refreshToken();
+    setToken(data.token);
+    setUser(normalizeUser(data.user) || user);
+    setSessionExpired(false);
+    return data;
+  }, [user]);
+
   const value = useMemo(
-    () => ({ user, loading, login, logout }),
-    [user, loading, login, logout],
+    () => ({ user, loading, sessionExpired, login, logout, refreshToken }),
+    [user, loading, sessionExpired, login, logout, refreshToken],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

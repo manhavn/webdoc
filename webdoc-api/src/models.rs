@@ -30,6 +30,10 @@ pub struct DocNode {
     pub content: String,
     #[serde(default)]
     pub published: bool,
+    #[serde(default)]
+    pub owner_id: Option<ObjectId>,
+    #[serde(default)]
+    pub user_access: Vec<ObjectId>,
     pub created_at: DateTime,
     pub updated_at: DateTime,
 }
@@ -50,7 +54,10 @@ impl DocNode {
         }
     }
 
+    #[allow(dead_code)]
     pub fn into_dto(self) -> DocDto {
+        let owner_id = self.owner_id.map(|id| id.to_hex());
+        let user_access = self.user_access.iter().map(|id| id.to_hex()).collect();
         DocDto {
             id: self.id.to_hex(),
             title: self.title,
@@ -62,6 +69,73 @@ impl DocNode {
             description: self.description,
             content: self.content,
             published: self.published,
+            owner_id,
+            owner_username: None,
+            user_access,
+            can_edit: true,
+            can_toggle_publish: true,
+            can_delete: true,
+            is_owner: true,
+            is_group_owner: false,
+            created_at: rfc3339(self.created_at).unwrap_or_default(),
+            updated_at: rfc3339(self.updated_at).unwrap_or_default(),
+        }
+    }
+
+    pub fn into_admin_dto(
+        self,
+        current_user_id: Option<&ObjectId>,
+        is_inside_owned_group: bool,
+        owner_username: Option<String>,
+    ) -> DocDto {
+        let is_owner = match (&self.owner_id, current_user_id) {
+            (Some(owner), Some(cur)) => owner == cur,
+            (None, _) => true,
+            _ => false,
+        };
+        let in_user_access = current_user_id
+            .map(|uid| self.user_access.contains(uid))
+            .unwrap_or(false);
+
+        let (can_edit, can_toggle_publish, can_delete) = if self.group {
+            let is_group_manager = self.owner_id.is_none() || is_owner || is_inside_owned_group;
+            (
+                self.owner_id.is_none() || is_owner,
+                self.owner_id.is_none() || is_owner || is_inside_owned_group,
+                is_group_manager,
+            )
+        } else {
+            let can_edit_page = self.owner_id.is_none() || is_owner || in_user_access;
+            let can_toggle_page = can_edit_page || is_inside_owned_group;
+            let can_delete_page = self.owner_id.is_none() || is_owner || is_inside_owned_group;
+            (can_edit_page, can_toggle_page, can_delete_page)
+        };
+
+        let content = if !self.group && !can_edit {
+            String::new()
+        } else {
+            self.content
+        };
+
+        DocDto {
+            id: self.id.to_hex(),
+            title: self.title,
+            slug: self.slug,
+            path: self.path,
+            parent_id: self.parent_id.map(|id| id.to_hex()),
+            group: self.group,
+            order: self.order,
+            description: self.description,
+            content,
+            published: self.published,
+            owner_id: self.owner_id.map(|id| id.to_hex()),
+            owner_username,
+            user_access: self.user_access.into_iter().map(|id| id.to_hex()).collect(),
+            can_edit,
+            can_toggle_publish,
+            can_delete,
+            is_owner,
+            is_group_owner: is_inside_owned_group,
             created_at: rfc3339(self.created_at).unwrap_or_default(),
             updated_at: rfc3339(self.updated_at).unwrap_or_default(),
         }
@@ -111,7 +185,7 @@ pub struct DocPageDto {
 }
 
 /// Flat representation used by the CMS.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocDto {
     pub id: String,
@@ -124,6 +198,14 @@ pub struct DocDto {
     pub description: String,
     pub content: String,
     pub published: bool,
+    pub owner_id: Option<String>,
+    pub owner_username: Option<String>,
+    pub user_access: Vec<String>,
+    pub can_edit: bool,
+    pub can_toggle_publish: bool,
+    pub can_delete: bool,
+    pub is_owner: bool,
+    pub is_group_owner: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -149,6 +231,8 @@ pub struct DocCreateInput {
     pub content: Option<String>,
     #[serde(default)]
     pub published: Option<bool>,
+    #[serde(default)]
+    pub user_access: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -174,6 +258,8 @@ pub struct DocUpdateInput {
     pub content: Option<String>,
     #[serde(default)]
     pub published: Option<bool>,
+    #[serde(default)]
+    pub user_access: Option<Vec<String>>,
 }
 
 fn deserialize_double_option<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
@@ -193,30 +279,87 @@ pub struct UserDoc {
     pub password_hash: String,
     #[serde(default = "default_role")]
     pub role: String,
+    #[serde(default)]
+    pub secret_key: String,
+    #[serde(default = "default_allowed_routes")]
+    pub allowed_routes: Vec<String>,
     pub created_at: DateTime,
     pub updated_at: DateTime,
+}
+
+pub fn default_allowed_routes() -> Vec<String> {
+    vec![
+        "/".to_string(),
+        "/docs".to_string(),
+        "/cms-settings".to_string(),
+    ]
+}
+
+pub fn all_available_routes() -> Vec<String> {
+    vec![
+        "/".to_string(),
+        "/docs".to_string(),
+        "/site".to_string(),
+        "/appearance".to_string(),
+        "/cms-settings".to_string(),
+        "/homepage".to_string(),
+        "/languages".to_string(),
+        "/backup".to_string(),
+        "/users".to_string(),
+    ]
 }
 
 fn default_role() -> String {
     "admin".to_string()
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserDto {
     pub id: String,
     pub username: String,
     pub role: String,
+    pub allowed_routes: Vec<String>,
 }
 
 impl UserDoc {
     pub fn into_dto(self) -> UserDto {
+        let allowed_routes = if self.role == "admin" {
+            all_available_routes()
+        } else if self.allowed_routes.is_empty() {
+            default_allowed_routes()
+        } else {
+            self.allowed_routes
+        };
         UserDto {
             id: self.id.to_hex(),
             username: self.username,
             role: self.role,
+            allowed_routes,
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserCreateInput {
+    pub username: String,
+    pub password: String,
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub allowed_routes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct UserUpdateInput {
+    #[serde(default)]
+    pub password: Option<String>,
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub allowed_routes: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -408,6 +551,41 @@ impl CmsColors {
         }
     }
 }
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum TokenDaysValue {
+    Num(u64),
+    Str(String),
+}
+
+impl TokenDaysValue {
+    fn into_u32(self) -> u32 {
+        match self {
+            TokenDaysValue::Num(n) => (n.clamp(1, 3650)) as u32,
+            TokenDaysValue::Str(s) => s.trim().parse::<u32>().unwrap_or(1).clamp(1, 3650),
+        }
+    }
+}
+
+fn default_token_days() -> u32 {
+    1
+}
+
+fn deserialize_token_days<'de, D>(deserializer: D) -> Result<u32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::<TokenDaysValue>::deserialize(deserializer)?;
+    Ok(opt.map(|v| v.into_u32()).unwrap_or(1))
+}
+
+fn deserialize_opt_token_days<'de, D>(deserializer: D) -> Result<Option<u32>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::<TokenDaysValue>::deserialize(deserializer)?;
+    Ok(opt.map(|v| v.into_u32()))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -425,6 +603,8 @@ pub struct CmsSettings {
     pub colors: CmsColors,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub login_panel_bg: String,
+    #[serde(default = "default_token_days", deserialize_with = "deserialize_token_days")]
+    pub token_days: u32,
 }
 
 impl Default for CmsSettings {
@@ -442,6 +622,7 @@ impl Default for CmsSettings {
             footer_text: String::new(),
             colors: CmsColors::default(),
             login_panel_bg: String::new(),
+            token_days: 1,
         }
     }
 }
@@ -461,6 +642,8 @@ pub struct CmsSettingsInput {
     pub footer_text: Option<String>,
     pub colors: Option<CmsColorsInput>,
     pub login_panel_bg: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_opt_token_days")]
+    pub token_days: Option<u32>,
 }
 
 impl CmsSettings {
@@ -502,6 +685,9 @@ impl CmsSettings {
         if let Some(v) = input.login_panel_bg {
             self.colors.login_panel_bg = v.clone();
             self.login_panel_bg = v;
+        }
+        if let Some(v) = input.token_days {
+            self.token_days = v.clamp(1, 3650);
         }
     }
 }
@@ -762,5 +948,148 @@ mod i18n_tests {
         s.apply(input);
         assert_eq!(s.colors.login_panel_bg, "#112233");
         assert_eq!(s.login_panel_bg, "#112233");
+    }
+
+    #[test]
+    fn cms_settings_supports_custom_token_days() {
+        use mongodb::bson::doc;
+        let d = doc! {
+            "brandName": "My Custom CMS",
+            "tokenDays": 30
+        };
+        let s: super::CmsSettings = mongodb::bson::from_document(d).unwrap();
+        assert_eq!(s.token_days, 30);
+
+        let json_val = serde_json::json!({
+            "brandName": "My Custom CMS",
+            "tokenDays": "365"
+        });
+        let s_json: super::CmsSettings = serde_json::from_value(json_val).unwrap();
+        assert_eq!(s_json.token_days, 365);
+
+        let mut cms = super::CmsSettings::default();
+        assert_eq!(cms.token_days, 1);
+        cms.apply(super::CmsSettingsInput {
+            token_days: Some(365),
+            ..Default::default()
+        });
+        assert_eq!(cms.token_days, 365);
+    }
+
+    #[test]
+    fn cms_settings_from_bson_int32() {
+        use mongodb::bson::doc;
+        let d = doc! {
+            "brandName": "My Custom CMS",
+            "tokenDays": mongodb::bson::Bson::Int32(30)
+        };
+        let loaded: super::CmsSettings = mongodb::bson::from_document(d).unwrap();
+        println!("DEBUG_TOKEN_DAYS: {}", loaded.token_days);
+        assert_eq!(loaded.token_days, 30);
+    }
+
+    #[test]
+    fn doc_node_permissions_matrix() {
+        use mongodb::bson::oid::ObjectId;
+        let group_owner = ObjectId::new();
+        let page_owner = ObjectId::new();
+        let editor_user = ObjectId::new();
+        let random_user = ObjectId::new();
+
+        let group = super::DocNode {
+            id: ObjectId::new(),
+            title: "Group 1".to_string(),
+            slug: "group-1".to_string(),
+            path: "/group-1".to_string(),
+            parent_id: None,
+            group: true,
+            order: 1,
+            description: "".to_string(),
+            content: "".to_string(),
+            published: true,
+            owner_id: Some(group_owner),
+            user_access: vec![],
+            created_at: mongodb::bson::DateTime::now(),
+            updated_at: mongodb::bson::DateTime::now(),
+        };
+
+        let dto_group_owner = group.clone().into_admin_dto(Some(&group_owner), false, None);
+        assert!(dto_group_owner.is_owner);
+        assert!(dto_group_owner.can_edit);
+        assert!(dto_group_owner.can_toggle_publish);
+        assert!(dto_group_owner.can_delete);
+
+        let dto_group_stranger = group.clone().into_admin_dto(Some(&random_user), false, None);
+        assert!(!dto_group_stranger.is_owner);
+        assert!(!dto_group_stranger.can_edit);
+        assert!(!dto_group_stranger.can_toggle_publish);
+        assert!(!dto_group_stranger.can_delete);
+
+        let page = super::DocNode {
+            id: ObjectId::new(),
+            title: "Page 1".to_string(),
+            slug: "page-1".to_string(),
+            path: "/group-1/page-1".to_string(),
+            parent_id: Some(group.id),
+            group: false,
+            order: 1,
+            description: "".to_string(),
+            content: "Secret Page Content".to_string(),
+            published: true,
+            owner_id: Some(page_owner),
+            user_access: vec![editor_user],
+            created_at: mongodb::bson::DateTime::now(),
+            updated_at: mongodb::bson::DateTime::now(),
+        };
+
+        let dto_page_owner = page.clone().into_admin_dto(Some(&page_owner), false, None);
+        assert!(dto_page_owner.is_owner);
+        assert!(dto_page_owner.can_edit);
+        assert!(dto_page_owner.can_toggle_publish);
+        assert!(dto_page_owner.can_delete);
+        assert_eq!(dto_page_owner.content, "Secret Page Content");
+
+        let dto_editor = page.clone().into_admin_dto(Some(&editor_user), false, None);
+        assert!(!dto_editor.is_owner);
+        assert!(dto_editor.can_edit);
+        assert!(dto_editor.can_toggle_publish);
+        assert_eq!(dto_editor.content, "Secret Page Content");
+
+        let dto_group_owner_for_page = page.clone().into_admin_dto(Some(&group_owner), true, None);
+        assert!(!dto_group_owner_for_page.is_owner);
+        assert!(!dto_group_owner_for_page.can_edit);
+        assert!(dto_group_owner_for_page.can_toggle_publish);
+        assert!(dto_group_owner_for_page.can_delete);
+        assert_eq!(dto_group_owner_for_page.content, "");
+
+        let dto_random = page.clone().into_admin_dto(Some(&random_user), false, None);
+        assert!(!dto_random.is_owner);
+        assert!(!dto_random.can_edit);
+        assert!(!dto_random.can_toggle_publish);
+        assert!(!dto_random.can_delete);
+        assert_eq!(dto_random.content, "");
+
+        let subgroup = super::DocNode {
+            id: ObjectId::new(),
+            title: "Subgroup 1".to_string(),
+            slug: "subgroup-1".to_string(),
+            path: "/group-1/subgroup-1".to_string(),
+            parent_id: Some(group.id),
+            group: true,
+            order: 1,
+            description: "".to_string(),
+            content: "".to_string(),
+            published: true,
+            owner_id: Some(page_owner),
+            user_access: vec![],
+            created_at: mongodb::bson::DateTime::now(),
+            updated_at: mongodb::bson::DateTime::now(),
+        };
+
+        let dto_subgroup_for_group_owner = subgroup.clone().into_admin_dto(Some(&group_owner), true, None);
+        assert!(!dto_subgroup_for_group_owner.is_owner);
+        assert!(!dto_subgroup_for_group_owner.can_edit);
+        assert!(dto_subgroup_for_group_owner.can_toggle_publish);
+        assert!(dto_subgroup_for_group_owner.can_delete);
     }
 }

@@ -48,8 +48,21 @@ pub async fn login(
             "Sai tên đăng nhập hoặc mật khẩu.",
         ));
     }
+    let mut user = user;
+    if user.secret_key.trim().is_empty() {
+        let new_secret = crate::auth::generate_random_secret();
+        users
+            .update_one(
+                doc! { "_id": user.id },
+                doc! { "$set": { "secretKey": &new_secret } },
+            )
+            .await?;
+        user.secret_key = new_secret;
+    }
 
-    let token = issue_token(&state.config, &user)?;
+    let cms = crate::routes::load_cms_settings(&state.db).await.ok();
+    let token_days = cms.map(|c| c.token_days);
+    let token = issue_token(&state.config, &user, token_days)?;
     Ok(Json(LoginResponse {
         token,
         user: user.into_dto(),
@@ -67,4 +80,24 @@ pub async fn me(
         .await?
         .ok_or_else(ApiError::unauthorized)?;
     Ok(Json(user.into_dto()))
+}
+
+pub async fn refresh(
+    State(state): State<AppState>,
+    admin: CurrentAdmin,
+) -> Result<Json<LoginResponse>, ApiError> {
+    let id = ObjectId::parse_str(&admin.0.sub).map_err(|_| ApiError::unauthorized())?;
+    let users = state.db.collection::<UserDoc>("users");
+    let user = users
+        .find_one(doc! { "_id": id })
+        .await?
+        .ok_or_else(ApiError::unauthorized)?;
+
+    let cms = crate::routes::load_cms_settings(&state.db).await.ok();
+    let token_days = cms.map(|c| c.token_days);
+    let token = issue_token(&state.config, &user, token_days)?;
+    Ok(Json(LoginResponse {
+        token,
+        user: user.into_dto(),
+    }))
 }

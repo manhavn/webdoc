@@ -50,6 +50,8 @@ async fn seed_admin(db: &Database, config: &Config, now: DateTime) -> Result<(),
         username: config.admin_username.clone(),
         password_hash,
         role: "admin".to_string(),
+        secret_key: auth::generate_random_secret(),
+        allowed_routes: crate::models::all_available_routes(),
         created_at: now,
         updated_at: now,
     };
@@ -365,6 +367,8 @@ async fn seed_docs(db: &Database, now: DateTime) -> Result<(), Box<dyn Error>> {
             description: seed.description.clone(),
             content: seed.content.clone(),
             published: seed.published,
+            owner_id: None,
+            user_access: Vec::new(),
             created_at: now,
             updated_at: now,
         });

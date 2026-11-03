@@ -7,6 +7,9 @@ import Icon from './Icons';
 import LangSwitch from './LangSwitch';
 import ThemeSwitch from './ThemeSwitch';
 import ChangePasswordDialog from './ChangePasswordDialog';
+import { useToast } from './Toast';
+import { getToken } from '../lib/api';
+import { getTokenExp, formatTokenRemaining } from '../lib/tokenExpiry';
 
 const NAV_ITEMS = [
   { labelKey: 'nav.dashboard', to: '/', icon: 'dashboard', end: true },
@@ -17,6 +20,7 @@ const NAV_ITEMS = [
   { labelKey: 'nav.homepage', to: '/homepage', icon: 'dashboard' },
   { labelKey: 'nav.languages', to: '/languages', icon: 'globe' },
   { labelKey: 'nav.backup', to: '/backup', icon: 'backup' },
+  { labelKey: 'nav.users', to: '/users', icon: 'user', adminOnly: true },
 ];
 
 const PAGE_TITLES = {
@@ -28,6 +32,7 @@ const PAGE_TITLES = {
   '/homepage': 'nav.homepage',
   '/languages': 'nav.languages',
   '/backup': 'nav.backup',
+  '/users': 'nav.users',
 };
 
 function pageTitleKey(pathname) {
@@ -35,7 +40,8 @@ function pageTitleKey(pathname) {
 }
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshToken } = useAuth();
+  const toast = useToast();
   const { t, lang } = useI18n();
   const { cms } = useCms();
   const location = useLocation();
@@ -44,6 +50,13 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const userMenuRef = useRef(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(() => {
+    const token = getToken();
+    const exp = getTokenExp(token);
+    return exp ? exp - Math.floor(Date.now() / 1000) : null;
+  });
+  const [refreshingToken, setRefreshingToken] = useState(false);
+  const hasNotifiedExpiry = useRef(false);
   const titleKey = pageTitleKey(location.pathname);
 
   useEffect(() => {
@@ -62,6 +75,68 @@ export default function Layout() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
+
+  useEffect(() => {
+    const tick = () => {
+      const token = getToken();
+      const exp = getTokenExp(token);
+      if (!exp) {
+        setRemainingSeconds(null);
+        return;
+      }
+      const diff = exp - Math.floor(Date.now() / 1000);
+      setRemainingSeconds(diff);
+      if (diff <= 0) {
+        if (!hasNotifiedExpiry.current) {
+          hasNotifiedExpiry.current = true;
+          toast.error(
+            t('nav.tokenExpiredToast') ||
+              'Phiên đăng nhập đã hết hạn! Bạn cần copy những thứ đang làm vào nơi khác để tránh mất dữ liệu và đăng nhập lại.'
+          );
+        }
+      } else {
+        hasNotifiedExpiry.current = false;
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [t, toast]);
+
+  async function handleRefreshToken() {
+    setRefreshingToken(true);
+    try {
+      await refreshToken();
+      hasNotifiedExpiry.current = false;
+      const token = getToken();
+      const exp = getTokenExp(token);
+      if (exp) {
+        setRemainingSeconds(exp - Math.floor(Date.now() / 1000));
+      }
+      toast.success(t('nav.refreshTokenSuccess'));
+    } catch (err) {
+      toast.error(err.message || t('nav.refreshTokenError'));
+    } finally {
+      setRefreshingToken(false);
+    }
+  }
+
+  const expiryInfo = formatTokenRemaining(remainingSeconds, t);
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (item.adminOnly) return user?.role === 'admin';
+    if (user?.role === 'admin') return true;
+    const allowed = Array.isArray(user?.allowedRoutes)
+      ? user.allowedRoutes
+      : ['/', '/docs', '/cms-settings'];
+    const path = item.to.replace(/^\/admin/, '') || '/';
+    return (
+      allowed.includes(path) ||
+      allowed.includes(item.to) ||
+      allowed.includes(`/admin${path}`) ||
+      (path === '/' && (allowed.includes('/admin') || allowed.includes('/')))
+    );
+  });
 
   function handleLogout() {
     setMenuOpen(false);
@@ -93,7 +168,7 @@ export default function Layout() {
 
         <nav className="sidebar-nav" aria-label={t('nav.adminNav')}>
           <span className="nav-caption">{t('nav.caption')}</span>
-          {NAV_ITEMS.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -162,7 +237,88 @@ export default function Layout() {
               </button>
 
               {menuOpen && (
-                <div className="user-dropdown" role="menu">
+                <div className="user-dropdown" role="menu" style={{ minWidth: 230 }}>
+                  <div
+                    className="token-expiry-card"
+                    style={{
+                      padding: '10px 12px',
+                      borderBottom: '1px solid var(--border)',
+                      background: expiryInfo.expired ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-soft)',
+                      borderRadius: '8px 8px 4px 4px',
+                      marginBottom: 4,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: expiryInfo.expired ? 'var(--error, #ef4444)' : 'var(--muted)',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.3,
+                        }}
+                      >
+                        {t('nav.tokenExpiryTitle')}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: expiryInfo.expired
+                            ? 'var(--error, #ef4444)'
+                            : remainingSeconds !== null && remainingSeconds < 60
+                              ? 'var(--error, #ef4444)'
+                              : 'var(--accent)',
+                        }}
+                      >
+                        {expiryInfo.text}
+                      </span>
+                    </div>
+
+                    {expiryInfo.expired && (
+                      <p
+                        style={{
+                          margin: '6px 0 8px',
+                          fontSize: 11,
+                          color: 'var(--error, #ef4444)',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {expiryInfo.warning}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={handleRefreshToken}
+                      disabled={refreshingToken}
+                      style={{
+                        width: '100%',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                        padding: '5px 8px',
+                        marginTop: 6,
+                        border: '1px solid var(--border)',
+                        borderRadius: 6,
+                        background: 'var(--panel)',
+                        cursor: refreshingToken ? 'wait' : 'pointer',
+                      }}
+                    >
+                      <Icon name="refresh" size={13} className={refreshingToken ? 'spin' : ''} />
+                      {refreshingToken ? t('nav.refreshingToken') : t('nav.refreshTokenBtn')}
+                    </button>
+                  </div>
                   <button
                     type="button"
                     role="menuitem"
