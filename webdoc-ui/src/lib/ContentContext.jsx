@@ -1,23 +1,29 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { api } from './api'
-import { defaultSite } from '../data/defaults'
+import { blankSite, fallbackSite } from '../data/defaults'
 import { defaultAppearance, mergeAppearance } from '../data/appearance'
-import { fallbackDocsTree } from './docs'
 
+/* The shell renders empty until this payload arrives: `site` starts as the
+   blank identity and `appearance`/`docsTree` as null, so no bundled sample
+   content can flash before the API answers. Bundled values are used only when
+   a request fails (`failed`), which is also what restores the demo fallback
+   title/logo/favicon. */
 const ContentContext = createContext({
-  site: defaultSite,
-  appearance: defaultAppearance,
-  docsTree: fallbackDocsTree,
+  site: blankSite,
+  appearance: null,
+  docsTree: null,
   loading: true,
+  failed: false,
   appearanceLoaded: false,
 })
 
 export function ContentProvider({ children }) {
 
-  const [site, setSite] = useState(defaultSite)
-  const [appearance, setAppearance] = useState(defaultAppearance)
-  const [docsTree, setDocsTree] = useState(fallbackDocsTree)
+  const [site, setSite] = useState(blankSite)
+  const [appearance, setAppearance] = useState(null)
+  const [docsTree, setDocsTree] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
   const [appearanceLoaded, setAppearanceLoaded] = useState(false)
 
   useEffect(() => {
@@ -28,16 +34,18 @@ export function ContentProvider({ children }) {
       api.get('/docs/tree'),
     ]).then(([siteRes, appearanceRes, docsRes]) => {
       if (!alive) return
-      if (siteRes.status === 'fulfilled' && siteRes.value) {
-        setSite({ ...defaultSite, ...siteRes.value })
-      }
-      if (appearanceRes.status === 'fulfilled') {
-        setAppearance(mergeAppearance(appearanceRes.value))
-        setAppearanceLoaded(true)
-      }
-      if (docsRes.status === 'fulfilled' && Array.isArray(docsRes.value)) {
-        setDocsTree(docsRes.value)
-      }
+      const siteOk = siteRes.status === 'fulfilled' && Boolean(siteRes.value)
+      const appearanceOk = appearanceRes.status === 'fulfilled'
+      const docsOk =
+        docsRes.status === 'fulfilled' && Array.isArray(docsRes.value)
+
+      setSite(siteOk ? { ...blankSite, ...siteRes.value } : fallbackSite)
+      setAppearance(
+        appearanceOk ? mergeAppearance(appearanceRes.value) : defaultAppearance,
+      )
+      setDocsTree(docsOk ? docsRes.value : [])
+      setAppearanceLoaded(appearanceOk)
+      setFailed(!siteOk || !appearanceOk || !docsOk)
       setLoading(false)
     })
     return () => {
@@ -47,7 +55,7 @@ export function ContentProvider({ children }) {
 
   return (
     <ContentContext.Provider
-      value={{ site, appearance, docsTree, loading, appearanceLoaded }}
+      value={{ site, appearance, docsTree, loading, failed, appearanceLoaded }}
     >
       {children}
     </ContentContext.Provider>

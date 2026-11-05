@@ -444,8 +444,12 @@ export default function AppearanceTheme() {
       style.id = STYLE_ID
       document.head.appendChild(style)
     }
-    style.textContent = buildAppearanceCss(appearance, resolved)
-    applyGoogleFonts(appearance.fonts && appearance.fonts.googleFontsUrl)
+    // Before the payload arrives nothing is styled: the boot screen must not
+    // wear the bundled sample palette.
+    style.textContent = appearance
+      ? buildAppearanceCss(appearance, resolved)
+      : ''
+    applyGoogleFonts(appearance?.fonts?.googleFontsUrl)
   }, [appearance, resolved])
 
   return null

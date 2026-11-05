@@ -6,7 +6,7 @@ import ThemeSwitch from './ThemeSwitch'
 import { useContent } from '../lib/ContentContext'
 import { useTheme } from '../theme/ThemeContext'
 import { useI18n } from '../i18n/I18nContext'
-import { localizedLabel } from '../data/appearance'
+import { defaultAppearance, localizedLabel } from '../data/appearance'
 import { findFirstDocPath } from '../lib/docs'
 
 /* The admin app is a separate SPA mounted under /admin. A public-site Link
@@ -217,17 +217,22 @@ export default function NavBar() {
   const hoveredMenu = useRef(null)
   const openedByHover = useRef(null)
   const suppressFocusOpen = useRef(false)
-  const { site, appearance, docsTree } = useContent()
+  const { site, appearance, docsTree, loading, failed } = useContent()
   const firstDocPath = useMemo(() => findFirstDocPath(docsTree), [docsTree])
   const homeTarget = site?.skipHomepage && firstDocPath ? firstDocPath : '/'
   const { t, lang } = useI18n()
   const { resolved } = useTheme()
+  // Bundled brand art is only a recovery identity: a failed load keeps the
+  // mark, a successful load without a configured logo shows none.
   const fallbackLogo =
-    resolved === 'dark'
-      ? '/assets/images/webdoc-logo-dark.svg'
-      : '/assets/images/webdoc-logo.svg'
+    failed && !site.headerLogo
+      ? resolved === 'dark'
+        ? '/assets/images/webdoc-logo-dark.svg'
+        : '/assets/images/webdoc-logo.svg'
+      : ''
+  const logo = loading ? '' : site.headerLogo || fallbackLogo
 
-  const header = appearance.header
+  const header = appearance?.header || defaultAppearance.header
   const showHeader = header.show !== false
   const sticky = header.sticky !== false
   const showNavigation = header.showNavigation !== false
@@ -248,8 +253,9 @@ export default function NavBar() {
   // Navigation is data-only. An empty/missing navigation array means the
   // site has no menu yet; no built-in demo menu is injected.
   const menus = useMemo(
-    () => (showNavigation ? customMenus(appearance.navigation, lang) : []),
-    [appearance.navigation, lang, showNavigation],
+    () =>
+      showNavigation ? customMenus(appearance?.navigation || [], lang) : [],
+    [appearance, lang, showNavigation],
   )
 
   useEffect(() => {
@@ -425,18 +431,20 @@ export default function NavBar() {
             <div className="container" data-v-99773bcd="">
               <div className="title" data-v-99773bcd="">
                 <div className="VPNavBarTitle" data-v-99773bcd="" data-v-8f6fe741="">
-                  <Link
-                    className="title"
-                    data-v-8f6fe741=""
-                    to={homeTarget}
-                    aria-label={t('nav.logoLabel')}
-                  >
-                    <img
-                      src={site.headerLogo || fallbackLogo}
-                      className="logo" data-v-8f6fe741=""
-                      alt={site.siteName || 'WebDoc'}
-                    />
-                  </Link>
+                  {logo && (
+                    <Link
+                      className="title"
+                      data-v-8f6fe741=""
+                      to={homeTarget}
+                      aria-label={t('nav.logoLabel')}
+                    >
+                      <img
+                        src={logo}
+                        className="logo" data-v-8f6fe741=""
+                        alt={site.siteName}
+                      />
+                    </Link>
+                  )}
                 </div>
               </div>
               <div className="content" data-v-99773bcd="">

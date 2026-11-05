@@ -11,10 +11,10 @@ export default function SearchModal({ open, onClose }) {
   const navigate = useNavigate()
   const { docsTree, appearance } = useContent()
   const { t, lang } = useI18n()
-  const docs = useMemo(() => flattenDocs(docsTree), [docsTree])
+  const docs = useMemo(() => flattenDocs(docsTree || []), [docsTree])
   const quickLinks = useMemo(() => {
     const out = []
-    for (const item of appearance.navigation || []) {
+    for (const item of appearance?.navigation || []) {
       if (item.href) out.push({ path: item.href, title: localizedLabel(item, lang) })
       for (const child of item.links || []) {
         if (child.href) {
@@ -23,7 +23,7 @@ export default function SearchModal({ open, onClose }) {
       }
     }
     return out
-  }, [appearance.navigation, lang])
+  }, [appearance, lang])
 
   useEffect(() => {
     if (open) {

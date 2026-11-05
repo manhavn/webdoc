@@ -3,8 +3,6 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useContent } from '../lib/ContentContext'
 import {
-  fallbackDocsFlat,
-  fallbackDocsTree,
   findDoc,
   firstArticlePath,
   flattenDocs,
@@ -24,13 +22,6 @@ function plainText(value = '') {
   const element = document.createElement('div')
   element.innerHTML = value
   return element.textContent.replace(/\s+/g, ' ').trim()
-}
-
-function fallbackDoc(path) {
-  const node = findDoc(fallbackDocsTree, path)
-  if (node) return node
-  const flat = fallbackDocsFlat.find((item) => item.path === path)
-  return flat || null
 }
 
 function DocSkeleton({ label }) {
@@ -61,15 +52,10 @@ export default function DocPage() {
   const [doc, setDoc] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const docLinks = useMemo(() => flattenDocs(docsTree), [docsTree])
-  const fallbackLinks = useMemo(() => flattenDocs(fallbackDocsTree), [])
-  const links = docLinks.length > 0 ? docLinks : fallbackLinks
+  const links = useMemo(() => flattenDocs(docsTree || []), [docsTree])
   const skipGroups = Boolean(site.docsSkipGroups)
 
-  const treeNode = useMemo(
-    () => findDoc(docsTree, path) || fallbackDoc(path),
-    [docsTree, path],
-  )
+  const treeNode = useMemo(() => findDoc(docsTree || [], path), [docsTree, path])
   const isGroup = Boolean(treeNode?.group)
   const firstArticle = useMemo(() => {
     if (!skipGroups) return null
@@ -101,7 +87,7 @@ export default function DocPage() {
         if (!alive) return
         if (skipGroups && res?.group) {
           const target =
-            firstArticlePath(findDoc(docsTree, res.path)) ||
+            firstArticlePath(findDoc(docsTree || [], res.path)) ||
             firstArticlePath(res)
           if (target) {
             setDoc(null)
@@ -116,8 +102,7 @@ export default function DocPage() {
           setDoc(null)
           return
         }
-        const local = fallbackDoc(path)
-        setDoc(local ? { ...local, source: 'fallback' } : null)
+        setDoc(null)
       })
       .finally(() => alive && setLoading(false))
     return () => {
@@ -138,15 +123,15 @@ export default function DocPage() {
 
   useEffect(() => {
     if (skipGroups) {
-      const node = findDoc(docsTree, path) || fallbackDoc(path)
+      const node = findDoc(docsTree || [], path)
       if (node && node.group) return
     }
     const current =
-      (doc && doc.path === path ? doc : null) ||
-      findDoc(docsTree, path) ||
-      fallbackDoc(path) ||
-      doc
-    if (!current) return
+      (doc && doc.path === path ? doc : null) || findDoc(docsTree || [], path)
+    if (!current) {
+      document.title = ''
+      return
+    }
     const pageTitle = current.title?.trim() || t('doc.defaultTitle')
     document.title = formatDocumentTitle(pageTitle, site.siteName)
   }, [doc, docsTree, path, skipGroups, site.siteName, t])
@@ -199,7 +184,7 @@ export default function DocPage() {
 
   if (skipGroups && doc.group) {
     const first =
-      firstArticlePath(findDoc(docsTree, doc.path)) || firstArticlePath(doc)
+      firstArticlePath(findDoc(docsTree || [], doc.path)) || firstArticlePath(doc)
     if (!first) return <NotFound />
     return (
       <DocsLayout contentKey="loading">

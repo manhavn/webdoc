@@ -232,7 +232,7 @@ function Sidebar({ activePath, activeCategory, open, onNavigate }) {
   const autoCollapsePeers = Boolean(site.docsAccordion)
   const groups = useMemo(
     () =>
-      [...docsTree]
+      [...(docsTree || [])]
         .filter((node) => node.published !== false)
         .sort((a, b) => (a.order || 0) - (b.order || 0))
         .map((node) => docToSidebar(node, 0, skipGroups)),

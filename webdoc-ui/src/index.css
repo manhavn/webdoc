@@ -2155,6 +2155,7 @@ button.wd-nav-subtree-link {
 }
 
 /* ------------------------------- Dark mode -------------------------------- */
+
 html[data-theme='dark'] {
   color-scheme: dark;
 }
@@ -2162,6 +2163,18 @@ html[data-theme='dark'] {
 html[data-theme='dark'] body {
   background-color: #0b1220 !important;
   color: #e5e7eb !important;
+}
+
+/* The boot screen (spinner/skeleton) must not wear the site background before
+   the payload confirms which page and theme are shown. App clears the flag as
+   soon as loading ends. This must follow the dark body rule to win the tie. */
+html[data-booting] {
+  color-scheme: light !important;
+}
+
+html[data-booting] body {
+  background-color: transparent !important;
+  color: #0f172a !important;
 }
 
 html[data-theme='dark'] .VPNavBar,

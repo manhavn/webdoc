@@ -2,18 +2,15 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" href="data:," />
+    <link rel="apple-touch-icon" href="data:," />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>WebDoc Demo — Documentation site</title>
-    <meta
-      name="description"
-      content="WebDoc Demo is a fictional documentation site with sample pages, navigation, partners and appearance settings."
-    />
-    <meta name="author" content="WebDoc Demo" />
+    <!-- Title, description, favicon and share image belong to the site
+         settings payload; the app fills them in after boot. -->
+    <title></title>
     <meta name="theme-color" content="#ffffff" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/assets/images/og-image.png" />
+    <meta property="og:image" content="" />
     <style>
       /* Keep the viewport scrollbar lane reserved while booting. Content height
          changes (skeleton → article) must not toggle the scrollbar and shift
@@ -70,6 +67,10 @@
          resolve the correct mode without a wrong-theme flash. With no cached
          config the app waits for the API instead of guessing "system". */
       (function () {
+        /* The boot screen runs on a neutral canvas: the saved mode is applied
+           to the document, but its background stays off until the payload
+           arrives and App clears this flag. */
+        document.documentElement.dataset.booting = '';
         try {
           var MODES = ['system', 'light', 'dark'];
           var saved = localStorage.getItem('webdoc_theme');

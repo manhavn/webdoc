@@ -1,7 +1,3 @@
-import fallbackFlat from '../data/docs.json' with { type: 'json' }
-
-export const fallbackDocsFlat = fallbackFlat
-
 export function buildDocsTree(flat) {
   if (!Array.isArray(flat) || flat.length === 0) return []
   const byPath = new Map()
@@ -25,16 +21,7 @@ export function buildDocsTree(flat) {
   return roots
 }
 
-export const fallbackDocsTree = buildDocsTree(
-  fallbackFlat.map((node) => ({
-    ...node,
-    id: node.path,
-    parentId: node.parentPath || null,
-    parentPath: node.parentPath || null,
-  })),
-)
-
-export function flattenDocs(nodes = fallbackDocsTree, parents = []) {
+export function flattenDocs(nodes = [], parents = []) {
   const out = []
   nodes.forEach((node) => {
     if (node.published === false) return

@@ -14,7 +14,7 @@ export default function HomePage() {
   const { lang, t } = useI18n()
   const { zoomImage, handleContentClick, closeZoom } = useImageZoom()
 
-  const home = (appearance.pages || []).find((page) => page.slug === 'home')
+  const home = (appearance?.pages || []).find((page) => page.slug === 'home')
   const prepared = useMemo(
     () => prepareArticle(home?.content || ''),
     [home?.content],
@@ -23,7 +23,11 @@ export default function HomePage() {
   const firstDocPath = useMemo(() => findFirstDocPath(docsTree), [docsTree])
 
   useEffect(() => {
-    if (!loading && site?.skipHomepage && firstDocPath) return
+    if (loading) {
+      document.title = ''
+      return
+    }
+    if (site?.skipHomepage && firstDocPath) return
     document.title = formatHomeTitle(site.siteName, site.tagline)
   }, [firstDocPath, loading, site.siteName, site.skipHomepage, site.tagline])
 

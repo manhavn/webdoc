@@ -7,11 +7,13 @@ import { formatDocumentTitle } from '../lib/title'
 
 export default function NotFound() {
   const { t } = useI18n()
-  const { site } = useContent()
+  const { site, loading } = useContent()
 
   useEffect(() => {
-    document.title = formatDocumentTitle(t('notFound.title') || 'Page not found', site.siteName)
-  }, [site.siteName, t])
+    document.title = loading
+      ? ''
+      : formatDocumentTitle(t('notFound.title') || 'Page not found', site.siteName)
+  }, [loading, site.siteName, t])
 
 
   return (
