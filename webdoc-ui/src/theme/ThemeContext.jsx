@@ -55,8 +55,12 @@ export function ThemeProvider({ children }) {
   const booted = Boolean(bootMode()) || !loading
 
   useEffect(() => {
+    // While the appearance payload is loading, `options` is only the local
+    // placeholder `['system']`. Resetting against it would silently discard
+    // the saved mode on every reload.
+    if (loading) return
     if (!options.includes(mode)) setModeState(configuredDefault)
-  }, [configuredDefault, mode, options])
+  }, [loading, configuredDefault, mode, options])
 
   useEffect(() => {
     if (!window.matchMedia) return undefined
