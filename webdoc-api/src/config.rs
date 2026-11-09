@@ -1,6 +1,9 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
+/// Default idle opacity of the image-zoom toolbar: 90% transparent.
+pub const DEFAULT_IMAGE_ZOOM_TOOLBAR_OPACITY: f64 = 0.1;
+
 /// Runtime configuration loaded from environment variables.
 ///
 /// Every value has a development-friendly default so the API can be started
@@ -26,6 +29,8 @@ pub struct Config {
     /// Public UI response cache root and lifetime.
     pub cache_dir: PathBuf,
     pub cache_ttl_secs: u64,
+    /// Opacity of the image-zoom toolbar while it is not hovered/focused.
+    pub image_zoom_toolbar_opacity: f64,
     /// Seed demo content/admin on an empty database (default true).
     pub seed: bool,
     pub cors_origins: Vec<String>,
@@ -63,6 +68,11 @@ impl Config {
             .and_then(|value| value.trim().parse::<u64>().ok())
             .filter(|value| *value > 0)
             .unwrap_or(120);
+        let image_zoom_toolbar_opacity = env::var("WEBDOC_IMAGE_ZOOM_TOOLBAR_OPACITY")
+            .ok()
+            .and_then(|value| value.trim().parse::<f64>().ok())
+            .filter(|value| (0.0..=1.0).contains(value))
+            .unwrap_or(DEFAULT_IMAGE_ZOOM_TOOLBAR_OPACITY);
         // Demo content is opt-in. Core bootstrap (admin + i18n) always runs.
         let seed = env::var("WEBDOC_SEED")
             .ok()
@@ -93,6 +103,7 @@ impl Config {
             upload_dir_explicit,
             cache_dir,
             cache_ttl_secs,
+            image_zoom_toolbar_opacity,
             seed,
             cors_origins,
             ui_dist: env_path("UI_DIST"),

@@ -104,6 +104,7 @@ Useful URLs:
 | `/api/health` | Health check |
 | `/api/docs/tree` | Documentation tree |
 | `/api/settings/appearance` | Public appearance config |
+| `/api/settings/ui` | Runtime UI options (image-zoom toolbar opacity) |
 | `/api/i18n` | Enabled locales + public-UI default |
 
 ## Empty install by default
@@ -146,6 +147,7 @@ Copy `webdoc-api/.env.example` to `webdoc-api/.env` and adjust:
 | `CORS_ORIGINS` | localhost dev origins | Extra comma-separated origins |
 | `WEBDOC_CACHE_DIR` | `/tmp/webdoc` | Public response cache root |
 | `WEBDOC_CACHE_TTL_SECS` | `120` | Cache lifetime in seconds |
+| `WEBDOC_IMAGE_ZOOM_TOOLBAR_OPACITY` | `0.1` | Image-zoom toolbar opacity when not hovered (0–1) |
 | `WEBDOC_SEED` | `false` | Opt-in demo content on an empty DB |
 | `UI_DIST` / `ADMIN_DIST` | embedded | Optional dev frontend dirs |
 
@@ -260,7 +262,8 @@ Every runtime setting can be supplied as a CLI flag: `--host`, `--port`,
 `--api-prefix`, `--admin-prefix`, `--mongodb-url`, `--mongodb-db`,
 `--jwt-secret`, `--admin-username`, `--admin-password`, `--data-dir`,
 `--upload-dir`, `--cache-dir`, `--cache-ttl`, `--cors-origins`,
-`--ui-dist`, `--admin-dist`. CLI values override environment variables and are
+`--image-zoom-toolbar-opacity`, `--ui-dist`, `--admin-dist`. CLI values
+override environment variables and are
 written into generated systemd/cron autostart configuration.
 
 ## CLI, daemon and autostart
@@ -277,6 +280,7 @@ webdoc --host 0.0.0.0 --port 18620 \
        --admin-username admin --admin-password "replace-me" \
        --data-dir /var/lib/webdoc --upload-dir /var/lib/webdoc/uploads \
        --cache-dir /tmp/webdoc --cache-ttl 120 \
+       --image-zoom-toolbar-opacity 0.1 \
        --cors-origins "https://example.com"
 
 # Same flags + autostart: the values are written into unit/cron
@@ -325,6 +329,7 @@ need `loginctl enable-linger "$USER"` to run at boot without an active login.
 | GET | `/api/docs/page?path=...` | — | One documentation page |
 | GET | `/api/partners` | — | Partner list (`/api/journals` alias retained) |
 | GET | `/api/settings/{site,layout,appearance}` | — | Public configuration |
+| GET | `/api/settings/ui` | — | Runtime UI options (`imageZoomToolbarOpacity`) |
 | GET | `/api/i18n` | — | Locales + public-UI default |
 | GET | `/api/i18n/:code` | — | Translation dictionaries |
 | POST | `/api/contact` | — | Contact form |

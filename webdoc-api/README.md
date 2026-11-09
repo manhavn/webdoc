@@ -52,6 +52,7 @@ overwrites existing content.
 | `ADMIN_USERNAME` | `admin` | Username created on first boot |
 | `ADMIN_PASSWORD` | `admin123` | Password created on first boot |
 | `WEBDOC_SEED` | `false` | Opt-in demo content |
+| `WEBDOC_IMAGE_ZOOM_TOOLBAR_OPACITY` | `0.1` | Image-zoom toolbar opacity when not hovered (0–1) |
 | `UPLOAD_DIR` | auto | Directory for uploaded images (served at `/uploads`) |
 | `WEBDOC_DATA_DIR` | — | Data directory; uploads go to `<dir>/uploads` |
 | `CORS_ORIGINS` | — | Extra comma-separated allowed origins |
@@ -165,6 +166,7 @@ and are written into generated systemd/cron config:
 --mongodb-url --mongodb-db
 --jwt-secret --admin-username --admin-password
 --data-dir --upload-dir --cache-dir --cache-ttl
+--image-zoom-toolbar-opacity
 --cors-origins --ui-dist --admin-dist
 ```
 
@@ -198,6 +200,7 @@ All errors are JSON: `{"error": "message"}` with an appropriate status code.
 | GET | `/api/settings/layout` | `{slug:"home", sections:[{key,enabled,order,data}]}` |
 | GET | `/api/settings/site` | `{siteName,tagline,hotline,email,address,facebook,youtube,footerText,headerLogo,footerLogo,favicon,ogImage}` |
 | GET | `/api/settings/appearance` | Stored theme merged with bundled defaults (colors, fonts, background, header, footer, navigation, pages) |
+| GET | `/api/settings/ui` | Runtime UI options from CLI/env: `{imageZoomToolbarOpacity}` (0–1, default `0.1`) |
 | GET | `/api/i18n` | Enabled locales: `{defaultLocale,uiDefaultLocale,locales:[{code,name,order,uiEnabled}]}`, sorted by `order`; `defaultLocale` is the CMS default, `uiDefaultLocale` the website default |
 | GET | `/api/i18n/:code` | Enabled locale dictionaries: `{code,name,ui,admin}`; 404 when disabled/unknown |
 | GET | `/api/pages/:slug` | `{slug,title,content}` |

@@ -9,6 +9,7 @@ import {
   ZOOM_STEP_FACTOR,
 } from '../lib/imageZoom'
 import { useI18n } from '../i18n/I18nContext'
+import { DEFAULT_UI_SETTINGS, useContent } from '../lib/ContentContext'
 
 export default function ImageZoomModal({
   src,
@@ -29,6 +30,17 @@ export default function ImageZoomModal({
     height: typeof window !== 'undefined' ? window.innerHeight : 800,
   })
   const { t } = useI18n()
+  const { ui } = useContent()
+  const toolbarIdleOpacity =
+    ui?.imageZoomToolbarOpacity ?? DEFAULT_UI_SETTINGS.imageZoomToolbarOpacity
+  // The toolbar starts fully opaque, holds for 1s, then fades over the last 1s.
+  const [toolbarStage, setToolbarStage] = useState('hold')
+  const toolbarTimersRef = useRef([])
+  const finishToolbarIntro = useCallback(() => {
+    toolbarTimersRef.current.forEach((id) => window.clearTimeout(id))
+    toolbarTimersRef.current = []
+    setToolbarStage('done')
+  }, [])
   const overlayRef = useRef(null)
   const imgContainerRef = useRef(null)
   const isPointerDownRef = useRef(false)
@@ -56,6 +68,19 @@ export default function ImageZoomModal({
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = originalOverflow
+    }
+  }, [])
+
+  // Toolbar intro: 1s fully visible, then a 1s fade to the idle opacity. Any
+  // hover/focus cancels the remaining intro so leaving hides it immediately.
+  useEffect(() => {
+    const fade = window.setTimeout(() => setToolbarStage('fade'), 1000)
+    const settle = window.setTimeout(() => setToolbarStage('done'), 2000)
+    toolbarTimersRef.current = [fade, settle]
+    return () => {
+      window.clearTimeout(fade)
+      window.clearTimeout(settle)
+      toolbarTimersRef.current = []
     }
   }, [])
 
@@ -297,10 +322,15 @@ export default function ImageZoomModal({
     >
       {/* Floating Toolbar */}
       <div
-        className="wd-image-zoom-toolbar"
+        className={`wd-image-zoom-toolbar${
+          toolbarStage === 'hold' ? ' is-intro-hold' : ''
+        }${toolbarStage === 'fade' ? ' is-intro-fade' : ''}`}
+        style={{ '--wd-image-zoom-toolbar-idle-opacity': toolbarIdleOpacity }}
         role="toolbar"
         aria-label="Điều khiển phóng to"
         onClick={(e) => e.stopPropagation()}
+        onPointerEnter={finishToolbarIntro}
+        onFocusCapture={finishToolbarIntro}
       >
         <button
           type="button"

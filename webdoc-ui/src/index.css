@@ -2559,6 +2559,32 @@ html[data-theme='dark'] .wd-contact-form textarea::placeholder {
   padding: 4px 6px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
   user-select: none;
+  /* Idle state is 90% transparent by default; the API CLI flag changes it. */
+  opacity: var(--wd-image-zoom-toolbar-idle-opacity, 0.1);
+  transition: opacity 0.18s ease;
+}
+
+/* Intro sequence: fully visible for 1s, then fade to idle over the last 1s. */
+.wd-image-zoom-toolbar.is-intro-hold {
+  opacity: 1;
+  transition: none;
+}
+
+.wd-image-zoom-toolbar.is-intro-fade {
+  opacity: var(--wd-image-zoom-toolbar-idle-opacity, 0.1);
+  transition: opacity 1s ease-out;
+}
+
+.wd-image-zoom-toolbar:hover,
+.wd-image-zoom-toolbar:has(:focus-visible) {
+  opacity: 1;
+}
+
+/* Touch devices cannot hover, so the toolbar must stay visible to be usable. */
+@media (hover: none) {
+  .wd-image-zoom-toolbar {
+    opacity: 1;
+  }
 }
 
 .wd-image-zoom-btn {

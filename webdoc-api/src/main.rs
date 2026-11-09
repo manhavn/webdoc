@@ -157,6 +157,7 @@ fn build_app(state: AppState, config: &Config) -> Router {
         .route("/settings/site", get(routes::public::site))
         .route("/settings/appearance", get(routes::appearance::public_get))
         .route("/settings/cms", get(routes::public::cms_settings))
+        .route("/settings/ui", get(routes::public::ui_settings))
         .route("/i18n", get(routes::i18n::config))
         .route("/i18n/{code}", get(routes::i18n::messages))
         .route("/docs/tree", get(routes::docs::tree))

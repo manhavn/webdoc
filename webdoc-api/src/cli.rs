@@ -58,7 +58,8 @@ const CRON_END: &str = "# <<< webdoc autostart <<<";
   webdoc --daemon --no-logs
 
   Environment: WEBDOC_HOST, PORT, MONGODB_URI, MONGODB_DB, WEBDOC_DATA_DIR,
-  JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, UPLOAD_DIR, CORS_ORIGINS."#
+  JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, UPLOAD_DIR, CORS_ORIGINS,
+  WEBDOC_IMAGE_ZOOM_TOOLBAR_OPACITY."#
 )]
 pub struct Cli {
     /// Install (true) or remove (false) autostart configuration.
@@ -136,6 +137,10 @@ pub struct Cli {
     /// Public response cache TTL in seconds (default 120).
     #[arg(long, value_name = "SECONDS")]
     pub cache_ttl: Option<u64>,
+
+    /// Image-zoom toolbar opacity while not hovered (0-1; default 0.1).
+    #[arg(long, value_name = "0-1")]
+    pub image_zoom_toolbar_opacity: Option<f64>,
 
     /// Extra CORS origins, comma separated.
     #[arg(long, value_name = "ORIGINS")]
@@ -230,6 +235,12 @@ pub fn apply_overrides(cli: &Cli, config: &mut Config) -> Result<(), String> {
             return Err("--cache-ttl must be greater than 0".to_string());
         }
         config.cache_ttl_secs = ttl;
+    }
+    if let Some(opacity) = cli.image_zoom_toolbar_opacity {
+        if !opacity.is_finite() || !(0.0..=1.0).contains(&opacity) {
+            return Err("--image-zoom-toolbar-opacity must be between 0 and 1".to_string());
+        }
+        config.image_zoom_toolbar_opacity = opacity;
     }
     if let Some(origins) = cli.cors_origins.as_deref() {
         for origin in origins.split(',').map(str::trim).filter(|v| !v.is_empty()) {
@@ -471,6 +482,8 @@ fn runtime_args(config: &Config) -> Vec<String> {
         config.cache_dir.display().to_string(),
         "--cache-ttl".to_string(),
         config.cache_ttl_secs.to_string(),
+        "--image-zoom-toolbar-opacity".to_string(),
+        config.image_zoom_toolbar_opacity.to_string(),
     ];
     if !config.cors_origins.is_empty() {
         args.push("--cors-origins".to_string());

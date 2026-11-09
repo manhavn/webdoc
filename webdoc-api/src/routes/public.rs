@@ -31,6 +31,15 @@ pub async fn cms_settings(State(state): State<AppState>) -> Result<Json<CmsSetti
     Ok(Json(load_cms_settings(&state.db).await?))
 }
 
+/// Runtime UI options that come from the process configuration (CLI/env)
+/// rather than the database, so they apply to the embedded build and to a Vite
+/// dev server proxying this API.
+pub async fn ui_settings(State(state): State<AppState>) -> Json<Value> {
+    Json(json!({
+        "imageZoomToolbarOpacity": state.config.image_zoom_toolbar_opacity,
+    }))
+}
+
 pub async fn contact(
     State(state): State<AppState>,
     ApiJson(input): ApiJson<ContactInput>,
