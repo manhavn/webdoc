@@ -191,7 +191,7 @@ export default function Layout() {
             <Icon name="logout" />
             <span>{t('nav.logout')}</span>
           </button>
-          <p className="sidebar-note">{cms.footerText || `${cms.brandName || t('brand.name')} v1.0.1`}</p>
+          <p className="sidebar-note">{cms.footerText || `${cms.brandName || t('brand.name')} v1.0.2`}</p>
         </div>
       </aside>
 

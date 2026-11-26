@@ -155,6 +155,9 @@ ensure sha256sum
 
 HOST_TARGET="$(rustc -vV | sed -n 's/^host: //p')"
 
+log "Cleaning obsolete assets"
+rm -rf "$ADMIN_DIR/public/tinymce" "$ADMIN_DIR/dist/tinymce"
+
 if [[ "$SKIP_FRONTEND" -eq 0 ]]; then
     ensure npm
 
@@ -193,13 +196,36 @@ copy_build "$ADMIN_DIR/dist" "$API_DIR/embed/admin"
 
 VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$API_DIR/Cargo.toml" | head -n 1)"
 ARTIFACTS=()
-PACKAGES=()
+PACKAGE_NAMES=()
+
+mkdir -p "$API_DIR/target"
+STAGING_ROOT="$(mktemp -d "$API_DIR/target/.build-staging.XXXXXX")"
+STAGING_DIST="$STAGING_ROOT/dist"
+STAGING_RELEASES="$STAGING_ROOT/releases"
+mkdir -p "$STAGING_DIST" "$STAGING_RELEASES"
+
+cleanup() {
+    rm -rf "${STAGING_ROOT:-}"
+}
+trap cleanup EXIT
+
+replace_outputs() {
+    local destination="$1"
+    local source="$2"
+    shift 2
+
+    mkdir -p "$destination"
+    find "$destination" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+    for item in "$@"; do
+        mv "$source/$item" "$destination/$item"
+    done
+}
 
 build_target() {
     local target="$1"
     local binary
     local name="webdoc-${VERSION}-${target}"
-    local stage="$DIST_DIR/$name"
+    local stage="$STAGING_DIST/$name"
     local tarball="${name}.tar.gz"
     local raw="webdoc-${target}"
 
@@ -243,31 +269,31 @@ build_target() {
     cp "$API_DIR/.env.example" "$stage/.env.example"
 
     log "Creating archive and raw binary for $target"
-    tar -czf "$DIST_DIR/$tarball" -C "$DIST_DIR" "$name"
-    install -m 755 "$binary" "$DIST_DIR/$raw"
+    tar -czf "$STAGING_RELEASES/$tarball" -C "$STAGING_DIST" "$name"
+    install -m 755 "$binary" "$STAGING_RELEASES/$raw"
 
     ARTIFACTS+=("$tarball" "$raw")
-    PACKAGES+=("$stage")
+    PACKAGE_NAMES+=("$name")
 }
 
 for target in "${BUILD_TARGETS[@]}"; do
     build_target "$target"
 done
 
-log "Publishing upload artifacts to $RELEASES_DIR"
-rm -rf "$RELEASES_DIR"
-mkdir -p "$RELEASES_DIR"
-for artifact in "${ARTIFACTS[@]}"; do
-    mv "$DIST_DIR/$artifact" "$RELEASES_DIR/$artifact"
-done
 (
-    cd "$RELEASES_DIR"
+    cd "$STAGING_RELEASES"
     sha256sum "${ARTIFACTS[@]}" >SHA256SUMS
 )
 
+log "Publishing staged packages to $DIST_DIR"
+replace_outputs "$DIST_DIR" "$STAGING_DIST" "${PACKAGE_NAMES[@]}"
+
+log "Publishing upload artifacts to $RELEASES_DIR"
+replace_outputs "$RELEASES_DIR" "$STAGING_RELEASES" "${ARTIFACTS[@]}" "SHA256SUMS"
+
 log "Done"
-for package in "${PACKAGES[@]}"; do
-    printf '  package:  %s\n' "$package"
+for package_name in "${PACKAGE_NAMES[@]}"; do
+    printf '  package:  %s\n' "$DIST_DIR/$package_name"
 done
 for artifact in "${ARTIFACTS[@]}"; do
     printf '  release:  %s\n' "$RELEASES_DIR/$artifact"

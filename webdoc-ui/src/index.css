@@ -1751,119 +1751,69 @@ html.wd-nav-static .wd-doc-wrap {
   opacity: 0.78;
 }
 
-/* Theme mode switcher (only rendered when more than one mode is enabled). */
+/* Compact icon segmented control for light, dark and system theme modes. */
 .wd-theme-switch {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
-  background: transparent;
+  padding: 3px;
+  border: 1px solid #e3e5e8;
+  border-radius: 999px;
+  background: #f1f2f4;
 }
 .wd-theme-switch__btn {
-  min-width: 28px;
-  height: 26px;
-  padding: 0 6px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--vp-c-text-2);
-  font: inherit;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-}
-.wd-theme-switch__btn:hover,
-.wd-theme-switch__btn.is-active {
-  color: var(--vp-c-brand-1);
-  background: var(--vp-c-brand-soft);
-}
-.wd-theme-switch--menu {
-  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 30px;
+  flex: 0 0 auto;
   padding: 0;
   border: 0;
-  background: none;
-}
-.wd-theme-switch__trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  height: 30px;
-  padding: 0 9px;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
+  border-radius: 999px;
   background: transparent;
-  color: var(--vp-c-text-1);
-  font: inherit;
-  font-size: 12px;
+  color: #737780;
   cursor: pointer;
+  transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
 }
-.wd-theme-switch__trigger:hover,
-.wd-theme-switch--menu.is-open .wd-theme-switch__trigger {
-  border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
+.wd-theme-switch__btn svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.wd-theme-switch__caret {
-  width: 10px;
-  height: 7px;
-  flex: none;
-  background-color: currentColor;
-  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 7'%3E%3Cpath fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round' d='M1 1.2 5 5.4 9 1.2'/%3E%3C/svg%3E")
-    center / contain no-repeat;
-  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 7'%3E%3Cpath fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round' d='M1 1.2 5 5.4 9 1.2'/%3E%3C/svg%3E")
-    center / contain no-repeat;
-  transition: transform 0.2s ease;
+.wd-theme-switch__btn:hover {
+  color: #20232a;
+  background: rgba(15, 23, 42, 0.06);
 }
-.wd-theme-switch--menu.is-open .wd-theme-switch__caret {
-  transform: rotate(180deg);
+.wd-theme-switch__btn.is-active {
+  color: #20232a;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
 }
-.wd-theme-switch__menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  min-width: 100%;
-  padding: 4px;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 10px;
-  background: var(--vp-c-bg, #fff);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+.wd-theme-switch__btn:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 1px;
 }
-.wd-theme-switch--desktop .wd-theme-switch__menu {
-  left: auto;
-  right: 0;
+html[data-theme='dark'] .wd-theme-switch {
+  border-color: #303036;
+  background: #101013;
 }
-.wd-theme-switch__option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 7px 9px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--vp-c-text-1);
-  font: inherit;
-  font-size: 12px;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
+html[data-theme='dark'] .wd-theme-switch__btn {
+  color: #c2c2c8;
 }
-.wd-theme-switch__option:hover,
-.wd-theme-switch__option:focus-visible {
-  background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
-  outline: none;
+html[data-theme='dark'] .wd-theme-switch__btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
-.wd-theme-switch__option.is-active {
-  color: var(--vp-c-brand-1);
-  font-weight: 600;
-}
-.wd-theme-switch__check {
-  font-size: 11px;
+html[data-theme='dark'] .wd-theme-switch__btn.is-active {
+  color: #fff;
+  background: #25252a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
 }
 .wd-theme-switch--mobile {
   margin: 8px 12px 8px 0;

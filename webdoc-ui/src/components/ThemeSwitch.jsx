@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/I18nContext'
 import { useTheme } from '../theme/ThemeContext'
 
@@ -8,140 +7,59 @@ const LABEL_KEYS = {
   dark: 'theme.dark',
 }
 
-const MOVE_KEYS = {
-  ArrowDown: 1,
-  ArrowUp: -1,
+// Keep the visual order consistent with the three-icon control in the navbar.
+const DISPLAY_ORDER = ['light', 'dark', 'system']
+
+function ThemeIcon({ mode }) {
+  if (mode === 'light') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="3.5" />
+        <path d="M12 2v2.2M12 19.8V22M4.93 4.93l1.56 1.56m11.02 11.02 1.56 1.56M2 12h2.2m15.6 0H22M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56" />
+      </svg>
+    )
+  }
+
+  if (mode === 'dark') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M20.2 15.3A8.5 8.5 0 0 1 8.7 3.8 8.6 8.6 0 1 0 20.2 15.3Z" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <rect x="3" y="4" width="18" height="13" rx="2.4" />
+      <path d="M9 20h6m-3-3v3" />
+    </svg>
+  )
 }
 
 export default function ThemeSwitch({ className = '' }) {
   const { t } = useI18n()
   const { mode, setMode, options } = useTheme()
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef(null)
-  const triggerRef = useRef(null)
-  const menuRef = useRef(null)
-
-  useEffect(() => {
-    if (!open) return undefined
-    const onPointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) setOpen(false)
-    }
-    const onKeyDown = (event) => {
-      if (event.key !== 'Escape') return
-      setOpen(false)
-      triggerRef.current?.focus()
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const items = menuRef.current?.querySelectorAll('[role="option"]')
-    const active = menuRef.current?.querySelector('[role="option"][aria-selected="true"]')
-    ;(active || items?.[0])?.focus()
-  }, [open])
 
   if (options.length <= 1) return null
-  const classes = `wd-theme-switch${className ? ` ${className}` : ''}`
-  if (options.length === 2) {
-    return (
-      <div className={classes} role="group" aria-label={t('theme.label')}>
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={`wd-theme-switch__btn${mode === option ? ' is-active' : ''}`}
-            aria-pressed={mode === option}
-            title={t(LABEL_KEYS[option])}
-            onClick={() => setMode(option)}
-          >
-            {option === 'dark' ? '☾' : option === 'light' ? '☀' : '◐'}
-          </button>
-        ))}
-      </div>
-    )
-  }
 
-  const onMenuKeyDown = (event) => {
-    const items = [...(menuRef.current?.querySelectorAll('[role="option"]') || [])]
-    if (!items.length) return
-    const current = items.indexOf(document.activeElement)
-    let next = null
-    if (event.key in MOVE_KEYS) {
-      next = (current + MOVE_KEYS[event.key] + items.length) % items.length
-    } else if (event.key === 'Home') {
-      next = 0
-    } else if (event.key === 'End') {
-      next = items.length - 1
-    }
-    if (next === null) return
-    event.preventDefault()
-    items[next].focus()
-  }
+  const classes = `wd-theme-switch${className ? ` ${className}` : ''}`
+  const visibleOptions = DISPLAY_ORDER.filter((option) => options.includes(option))
 
   return (
-    <div
-      className={`${classes} wd-theme-switch--menu${open ? ' is-open' : ''}`}
-      ref={rootRef}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
-      }}
-    >
-      <button
-        type="button"
-        ref={triggerRef}
-        className="wd-theme-switch__trigger"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={t('theme.label')}
-        onClick={() => setOpen((value) => !value)}
-        onKeyDown={(event) => {
-          if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
-          event.preventDefault()
-          setOpen(true)
-        }}
-      >
-        <span className="wd-theme-switch__value">{t(LABEL_KEYS[mode])}</span>
-        <span className="wd-theme-switch__caret" aria-hidden="true" />
-      </button>
-      {open && (
-        <div
-          className="wd-theme-switch__menu"
-          role="listbox"
-          aria-label={t('theme.label')}
-          ref={menuRef}
-          onKeyDown={onMenuKeyDown}
+    <div className={classes} role="group" aria-label={t('theme.label')}>
+      {visibleOptions.map((option) => (
+        <button
+          key={option}
+          type="button"
+          className={`wd-theme-switch__btn${mode === option ? ' is-active' : ''}`}
+          aria-label={t(LABEL_KEYS[option])}
+          aria-pressed={mode === option}
+          title={t(LABEL_KEYS[option])}
+          onClick={() => setMode(option)}
         >
-          {options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="option"
-              aria-selected={mode === option}
-              className={`wd-theme-switch__option${
-                mode === option ? ' is-active' : ''
-              }`}
-              onClick={() => {
-                setMode(option)
-                setOpen(false)
-                triggerRef.current?.focus()
-              }}
-            >
-              <span>{t(LABEL_KEYS[option])}</span>
-              {mode === option && (
-                <span className="wd-theme-switch__check" aria-hidden="true">
-                  ✓
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+          <ThemeIcon mode={option} />
+        </button>
+      ))}
     </div>
   )
 }
